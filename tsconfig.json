@@ -1,23 +1,37 @@
 {
   "compilerOptions": {
-    "module": "esnext",
     "target": "esnext",
-    "sourceMap": false,
-    "moduleResolution": "node16",
-    "skipLibCheck": true,
-    "allowSyntheticDefaultImports": true,
+    "module": "esnext",
+    "moduleResolution": "Node",
     "resolveJsonModule": true,
-    "strict": true,
-    "isolatedModules": true,
-    "types" : ["node"],
-    "baseUrl": ".",
-    "paths": {
-      "/@/*": [
-        "./src/*"
-      ]
-    },
-  },
-  "include": [
-    "src/**/*.ts"
-  ],
+    "lib": [
+        "ES2017",
+        "webworker"
+    ],
+    "sourceMap": true,
+    "rootDir": "src",
+    "outDir": "dist",
+    "skipLibCheck": true,
+    "types": [
+        "node",
+    ]
+},
+"include": [
+    "src",
+    "types/*.d.ts",
+    "../../types/**/*.d.ts"
+],
+"ts-node": {
+  "compilerOptions": {
+    "module": "CommonJS",
+    "lib": [
+      "ES2020",
+      "DOM"
+    ],
+    "types": [
+      "node"
+    ]
+  }
+}
+
 }

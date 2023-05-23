@@ -16,24 +16,12 @@
  * SPDX-License-Identifier: Apache-2.0
  ***********************************************************************/
 
-import path from 'node:path';
-import { coverageConfig, testConfig } from '../../vitest-shared-extensions.config';
-import {join} from 'path';
+declare module '*.mustache' {
+  const contents: string;
+  export = contents;
+}
 
-const PACKAGE_ROOT = __dirname;
-const PACKAGE_NAME = 'extensions/minikube';
-
-const config = {
-  test: {
-      ...testConfig(),
-      ...coverageConfig(PACKAGE_ROOT, PACKAGE_NAME),
-  },
-  resolve: {
-    alias: {
-      '@podman-desktop/api': path.resolve('../../', '__mocks__/@podman-desktop/api.js'),
-      '/@gen/': join(PACKAGE_ROOT, 'src-generated') + '/',
-    },
-  },
-};
-
-export default config;
+declare module '*.yaml' {
+  const contents: string;
+  export = contents;
+}

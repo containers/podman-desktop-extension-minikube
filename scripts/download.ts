@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**********************************************************************
  * Copyright (C) 2023 Red Hat, Inc.
  *
@@ -16,24 +17,23 @@
  * SPDX-License-Identifier: Apache-2.0
  ***********************************************************************/
 
-import path from 'node:path';
-import { coverageConfig, testConfig } from '../../vitest-shared-extensions.config';
-import {join} from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { Octokit } from 'octokit';
+import type { OctokitOptions } from '@octokit/core/dist-types/types';
 
-const PACKAGE_ROOT = __dirname;
-const PACKAGE_NAME = 'extensions/minikube';
+const octokitOptions: OctokitOptions = {};
+if (process.env.GITHUB_TOKEN) {
+  octokitOptions.auth = process.env.GITHUB_TOKEN;
+}
+const octokit = new Octokit(octokitOptions);
 
-const config = {
-  test: {
-      ...testConfig(),
-      ...coverageConfig(PACKAGE_ROOT, PACKAGE_NAME),
-  },
-  resolve: {
-    alias: {
-      '@podman-desktop/api': path.resolve('../../', '__mocks__/@podman-desktop/api.js'),
-      '/@gen/': join(PACKAGE_ROOT, 'src-generated') + '/',
-    },
-  },
-};
+// to make this file a module
+export {};
 
-export default config;
+async function download(tagVersion: string, repoPath: string, fileName: string): Promise<void> {
+  const destDir = path.resolve(__dirname, '..', 'src-generated');
+  if (!fs.existsSync(destDir)) {
+    fs.mkdirSync(destDir);
+  }
+}

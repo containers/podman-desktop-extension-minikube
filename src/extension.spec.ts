@@ -20,23 +20,17 @@
 
 import { beforeEach, expect, test, vi } from 'vitest';
 import * as podmanDesktopApi from '@podman-desktop/api';
-import { activate } from './extension';
+import { refreshMinikubeClustersOnProviderConnectionUpdate } from './extension';
 
 vi.mock('@podman-desktop/api', async () => {
   return {
-    commands: {
-      // eslint-disable-next-line @typescript-eslint/no-empty-function
-      registerCommand: vi.fn().mockImplementation(() => {}),
+    provider: {
+      onDidUpdateContainerConnection: vi.fn(),
     },
-    window: {
-      createStatusBarItem: vi.fn().mockImplementation(() => {
-        return {
-          text: '',
-          command: '',
-        };
-      }),
+
+    containerEngine: {
+      listContainers: vi.fn(),
     },
-    StatusBarAlignLeft: vi.fn(),
   };
 });
 
@@ -44,12 +38,22 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-test('check activate', async () => {
-  const extensionContext = {
-    subscriptions: [],
-  } as unknown as podmanDesktopApi.ExtensionContext;
-  await activate(extensionContext);
+test('check we received notifications ', async () => {
+  const onDidUpdateContainerConnectionMock = vi.fn();
+  (podmanDesktopApi.provider as any).onDidUpdateContainerConnection = onDidUpdateContainerConnectionMock;
 
-  expect(podmanDesktopApi.window.createStatusBarItem).toHaveBeenCalledWith(podmanDesktopApi.StatusBarAlignLeft);
-  expect(extensionContext.subscriptions).toHaveLength(1);
+  const listContainersMock = vi.fn();
+  (podmanDesktopApi.containerEngine as any).listContainers = listContainersMock;
+  listContainersMock.mockResolvedValue([]);
+
+  let callbackCalled = false;
+  onDidUpdateContainerConnectionMock.mockImplementation((callback: any) => {
+    callback();
+    callbackCalled = true;
+  });
+
+  const fakeProvider = {} as unknown as podmanDesktopApi.Provider;
+  refreshMinikubeClustersOnProviderConnectionUpdate(fakeProvider);
+  expect(callbackCalled).toBeTruthy();
+  expect(listContainersMock).toBeCalledTimes(1);
 });
