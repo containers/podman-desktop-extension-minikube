@@ -34,8 +34,6 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v3
-        with:
-          ref: ${{ needs.tag.outputs.githubTag}}
       - uses: actions/setup-node@v3
         with:
           node-version: 18
@@ -50,7 +48,7 @@ jobs:
         run: echo "dir=$(yarn cache dir)" >> ${env:GITHUB_OUTPUT}
 
       - name: Get yarn cache directory path (mac/Linux)
-        if: ${{ matrix.os=='ubuntu-20.04' || matrix.os=='macos-11' }}
+        if: ${{ matrix.os=='ubuntu-22.04' || matrix.os=='macos-11' }}
         id: yarn-cache-dir-path-unix
         run: echo "dir=$(yarn cache dir)" >> ${GITHUB_OUTPUT}
 
