@@ -22,7 +22,6 @@ on: [pull_request]
 jobs:
   build:
     name: Build / ${{ matrix.os }}
-    needs: tag
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
