@@ -74,7 +74,9 @@ jobs:
         run: |
           yarn --frozen-lockfile --network-timeout 180000
 
+        # skip formatter on windows
       - name: Formatter
+        if: ${{ matrix.os=='ubuntu-22.04' || matrix.os=='macos-11' }}
         run: yarn format:check
 
       - name: Linter
