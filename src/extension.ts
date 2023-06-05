@@ -17,6 +17,7 @@
  ***********************************************************************/
 
 import * as podmanDesktopApi from '@podman-desktop/api';
+import { Disposable } from '@podman-desktop/api';
 
 export async function activate(extensionContext: podmanDesktopApi.ExtensionContext): Promise<void> {
   const statusbarItem = podmanDesktopApi.window.createStatusBarItem(podmanDesktopApi.StatusBarAlignLeft);
@@ -28,6 +29,7 @@ export async function activate(extensionContext: podmanDesktopApi.ExtensionConte
     podmanDesktopApi.commands.registerCommand('minikube.hello', async () => {
       await podmanDesktopApi.window.showInformationMessage('Hello from Minikube extension !');
     }),
+    Disposable.create(() => statusbarItem.dispose()),
   );
 }
 
