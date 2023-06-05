@@ -20,6 +20,7 @@ COPY dist/ /extension/dist
 COPY package.json /extension/
 COPY LICENSE /extension/
 COPY icon.png /extension/
+COPY logo-*.png /extension/
 COPY README.md /extension/
 
 
