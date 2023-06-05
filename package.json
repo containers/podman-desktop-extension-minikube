@@ -11,12 +11,46 @@
   },
   "main": "./dist/extension.js",
   "contributes": {
-    "commands": [
-      {
-        "command": "minikube.hello",
-        "title": "Minikube version"
+    "configuration": {
+      "title": "Minikube",
+      "properties": {
+        "minikube.cluster.creation.name": {
+          "type": "string",
+          "default": "minikube",
+          "scope": "KubernetesProviderConnectionFactory",
+          "description": "Name"
+        },
+        "minikube.cluster.creation.driver": {
+          "type": "string",
+          "default": "podman",
+          "enum": [
+            "podman",
+            "docker"
+          ],
+          "scope": "KubernetesProviderConnectionFactory",
+          "description": "Driver"
+        },
+        "minikube.cluster.creation.runtime": {
+          "type": "string",
+          "default": "cri-o",
+          "enum": [
+            "cri-o",
+            "containerd",
+            "docker"
+          ],
+          "scope": "KubernetesProviderConnectionFactory",
+          "description": "Container Runtime"
+        }
       }
-    ]
+    },
+    "menus": {
+      "dashboard/image": [
+        {
+          "command": "minikube.image.move",
+          "title": "Push image to minikube cluster"
+        }
+      ]
+    }
   },
   "scripts": {
     "build": "vite build",
@@ -27,6 +61,11 @@
     "lint:check": "eslint . --ext js,ts,tsx",
     "lint:fix": "eslint . --fix --ext js,ts,tsx",
     "watch": "vite build -w"
+  },
+  "dependencies": {
+    "@octokit/rest": "^19.0.11",
+    "sudo-prompt": "^9.2.1",
+    "tmp-promise": "^3.0.3"
   },
   "devDependencies": {
     "7zip-min": "^1.4.4",

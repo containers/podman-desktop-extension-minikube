@@ -16,16 +16,7 @@
  * SPDX-License-Identifier: Apache-2.0
  ***********************************************************************/
 
-import path from 'node:path';
-
-const config = {
-  test: {
-  },
-  resolve: {
-    alias: {
-      '@podman-desktop/api': path.resolve(__dirname, '__mocks__/@podman-desktop/api.js'),
-    },
-  },
-};
-
-export default config;
+declare module '*.yaml' {
+  const contents: string;
+  export = contents;
+}
