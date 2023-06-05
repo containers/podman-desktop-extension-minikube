@@ -22,6 +22,7 @@ export async function activate(extensionContext: podmanDesktopApi.ExtensionConte
   const statusbarItem = podmanDesktopApi.window.createStatusBarItem(podmanDesktopApi.StatusBarAlignLeft);
   statusbarItem.text = 'Minikube';
   statusbarItem.command = 'minikube.hello';
+  statusbarItem.show();
 
   extensionContext.subscriptions.push(
     podmanDesktopApi.commands.registerCommand('minikube.hello', async () => {
