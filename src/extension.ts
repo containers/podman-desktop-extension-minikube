@@ -182,7 +182,7 @@ async function createProvider(
   extensionContext: extensionApi.ExtensionContext,
   telemetryLogger: extensionApi.TelemetryLogger,
 ): Promise<void> {
-  const provider = extensionApi.provider.createProvider({
+  const providerOptions: extensionApi.ProviderOptions = {
     name: 'Minikube',
     id: 'minikube',
     status: 'unknown',
@@ -193,7 +193,14 @@ async function createProvider(
         light: './logo-light.png',
       },
     },
-  });
+  };
+
+  // Empty connection descriptive message
+  providerOptions.emptyConnectionMarkdownDescription = `
+  minikube quickly sets up a local Kubernetes cluster on macOS, Linux, and Windows. We proudly focus on helping application developers and new Kubernetes users.\n\nMore information: [minikube.sigs.k8s.io](https://minikube.sigs.k8s.io/)`;
+
+  const provider = extensionApi.provider.createProvider(providerOptions);
+
   extensionContext.subscriptions.push(provider);
   await registerProvider(extensionContext, provider, telemetryLogger);
   extensionContext.subscriptions.push(
