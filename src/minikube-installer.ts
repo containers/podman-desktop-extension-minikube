@@ -44,7 +44,7 @@ const MACOS_X64_PLATFORM = 'darwin-x64';
 
 const MACOS_ARM64_PLATFORM = 'darwin-arm64';
 
-const WINDOWS_X64_ASSET_NAME = 'minikube-windows-amd64';
+const WINDOWS_X64_ASSET_NAME = 'minikube-windows-amd64.exe';
 
 const LINUX_X64_ASSET_NAME = 'minikube-linux-amd64';
 
@@ -128,7 +128,7 @@ export class MinikubeInstaller {
               });
               progress.report({ increment: 80 });
               if (asset) {
-                const destFile = path.resolve(this.storagePath, isWindows() ? assetInfo.name + '.exe' : assetInfo.name);
+                const destFile = path.resolve(this.storagePath, assetInfo.name);
                 if (!fs.existsSync(this.storagePath)) {
                   fs.mkdirSync(this.storagePath);
                 }
