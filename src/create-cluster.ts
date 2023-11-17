@@ -42,19 +42,36 @@ export async function createCluster(
     runtime = params['minikube.cluster.creation.runtime'];
   }
 
+  let baseImage = '';
+  if (params['minikube.cluster.creation.base-image']) {
+    baseImage = params['minikube.cluster.creation.base-image'];
+  }
+
+  let mountString = '';
+  if (params['minikube.cluster.creation.mount-string']) {
+    mountString = params['minikube.cluster.creation.mount-string'];
+  }
+
   const env = Object.assign({}, process.env);
+
+  const startArgs = ['start', '--profile', clusterName, '--driver', driver, '--container-runtime', runtime];
+
+  // add base image parameter
+  if (baseImage) {
+    startArgs.push('--base-image', baseImage);
+  }
+  if (mountString) {
+    // need to add also the mount option
+    startArgs.push('--mount');
+    startArgs.push('--mount-string', mountString);
+  }
 
   // update PATH to include minikube
   env.PATH = getMinikubePath();
 
   // now execute the command to create the cluster
   try {
-    await runCliCommand(
-      minikubeCli,
-      ['start', '--profile', clusterName, '--driver', driver, '--container-runtime', runtime],
-      { env, logger },
-      token,
-    );
+    await runCliCommand(minikubeCli, startArgs, { env, logger }, token);
     telemetryLogger.logUsage('createCluster', { driver, runtime });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : error;

@@ -40,7 +40,18 @@
           ],
           "scope": "KubernetesProviderConnectionFactory",
           "description": "Container Runtime"
+        },
+        "minikube.cluster.creation.base-image": {
+          "type": "string",
+          "scope": "KubernetesProviderConnectionFactory",
+          "markdownDescription": "Optional base image to use for docker/podman drivers. See [documentation](https://minikube.sigs.k8s.io/docs/commands/start/#options). Intended for local development"
+        },
+        "minikube.cluster.creation.mount-string": {
+          "type": "string",
+          "scope": "KubernetesProviderConnectionFactory",
+          "markdownDescription": "Optional mount definition `host-path:container-path` to include during the start of minikube container. See [documentation](https://minikube.sigs.k8s.io/docs/commands/start/#options)"
         }
+
       }
     },
     "menus": {
