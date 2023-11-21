@@ -27,34 +27,32 @@ export async function createCluster(
   telemetryLogger: TelemetryLogger,
   token?: CancellationToken,
 ): Promise<void> {
-  let clusterName = 'minikube';
-  if (params['minikube.cluster.creation.name']) {
-    clusterName = params['minikube.cluster.creation.name'];
-  }
-
-  let driver = 'docker';
-  if (params['minikube.cluster.creation.driver']) {
-    driver = params['minikube.cluster.creation.driver'];
-  }
-
-  let runtime = 'docker';
-  if (params['minikube.cluster.creation.runtime']) {
-    runtime = params['minikube.cluster.creation.runtime'];
-  }
+  const clusterName = params['minikube.cluster.creation.name'] ?? 'minikube';
+  const driver = params['minikube.cluster.creation.driver'] ?? 'docker';
+  const runtime = params['minikube.cluster.creation.runtime'] ?? 'docker';
+  const baseImage = params['minikube.cluster.creation.base-image'];
+  const mountString = params['minikube.cluster.creation.mount-string'];
 
   const env = Object.assign({}, process.env);
+
+  const startArgs = ['start', '--profile', clusterName, '--driver', driver, '--container-runtime', runtime];
+
+  // add base image parameter
+  if (baseImage) {
+    startArgs.push('--base-image', baseImage);
+  }
+  if (mountString) {
+    // need to add also the mount option
+    startArgs.push('--mount');
+    startArgs.push('--mount-string', mountString);
+  }
 
   // update PATH to include minikube
   env.PATH = getMinikubePath();
 
   // now execute the command to create the cluster
   try {
-    await runCliCommand(
-      minikubeCli,
-      ['start', '--profile', clusterName, '--driver', driver, '--container-runtime', runtime],
-      { env, logger },
-      token,
-    );
+    await runCliCommand(minikubeCli, startArgs, { env, logger }, token);
     telemetryLogger.logUsage('createCluster', { driver, runtime });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : error;

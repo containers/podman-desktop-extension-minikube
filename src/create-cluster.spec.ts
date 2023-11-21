@@ -93,3 +93,72 @@ test('expect error if Kubernetes reports error', async () => {
     );
   }
 });
+
+test('expect cluster to be created with custom base image', async () => {
+  (runCliCommand as Mock).mockReturnValue({ exitCode: 0 });
+  await createCluster(
+    { 'minikube.cluster.creation.base-image': 'myCustomImage' },
+    undefined,
+    '',
+    telemetryLoggerMock,
+    undefined,
+  );
+  expect(telemetryLogUsageMock).toHaveBeenNthCalledWith(
+    1,
+    'createCluster',
+    expect.objectContaining({ driver: 'docker' }),
+  );
+  expect(telemetryLogErrorMock).not.toBeCalled();
+  expect(extensionApi.kubernetes.createResources).not.toBeCalled();
+  expect(runCliCommand).toBeCalledWith(
+    '',
+    [
+      'start',
+      '--profile',
+      'minikube',
+      '--driver',
+      'docker',
+      '--container-runtime',
+      'docker',
+      '--base-image',
+      'myCustomImage',
+    ],
+    expect.anything(),
+    undefined,
+  );
+});
+
+test('expect cluster to be created with custom mount', async () => {
+  (runCliCommand as Mock).mockReturnValue({ exitCode: 0 });
+  await createCluster(
+    { 'minikube.cluster.creation.mount-string': '/foo:/bar' },
+    undefined,
+    '',
+    telemetryLoggerMock,
+    undefined,
+  );
+  expect(telemetryLogUsageMock).toHaveBeenNthCalledWith(
+    1,
+    'createCluster',
+    expect.objectContaining({ driver: 'docker' }),
+  );
+  expect(telemetryLogErrorMock).not.toBeCalled();
+  expect(extensionApi.kubernetes.createResources).not.toBeCalled();
+  expect(runCliCommand).toBeCalledWith(
+    '',
+    [
+      'start',
+      '--profile',
+      'minikube',
+      '--driver',
+      'docker',
+      '--container-runtime',
+      'docker',
+      '--mount',
+      '--mount-string',
+      '/foo:/bar',
+    ],
+    expect.anything(),
+    undefined,
+  );
+});
