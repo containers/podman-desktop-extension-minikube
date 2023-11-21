@@ -2,7 +2,7 @@
   "name": "minikube",
   "displayName": "Minikube",
   "description": "Integration for minikube: a tool that makes it easy to run Kubernetes locally",
-  "version": "0.2.0-next",
+  "version": "0.3.0-next",
   "icon": "icon.png",
   "publisher": "podman-desktop",
   "license": "Apache-2.0",
