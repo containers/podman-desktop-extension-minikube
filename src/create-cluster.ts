@@ -27,30 +27,11 @@ export async function createCluster(
   telemetryLogger: TelemetryLogger,
   token?: CancellationToken,
 ): Promise<void> {
-  let clusterName = 'minikube';
-  if (params['minikube.cluster.creation.name']) {
-    clusterName = params['minikube.cluster.creation.name'];
-  }
-
-  let driver = 'docker';
-  if (params['minikube.cluster.creation.driver']) {
-    driver = params['minikube.cluster.creation.driver'];
-  }
-
-  let runtime = 'docker';
-  if (params['minikube.cluster.creation.runtime']) {
-    runtime = params['minikube.cluster.creation.runtime'];
-  }
-
-  let baseImage = '';
-  if (params['minikube.cluster.creation.base-image']) {
-    baseImage = params['minikube.cluster.creation.base-image'];
-  }
-
-  let mountString = '';
-  if (params['minikube.cluster.creation.mount-string']) {
-    mountString = params['minikube.cluster.creation.mount-string'];
-  }
+  const clusterName = params['minikube.cluster.creation.name'] ?? 'minikube';
+  const driver = params['minikube.cluster.creation.driver'] ?? 'docker';
+  const runtime = params['minikube.cluster.creation.runtime'] ?? 'docker';
+  const baseImage = params['minikube.cluster.creation.base-image'];
+  const mountString = params['minikube.cluster.creation.mount-string'];
 
   const env = Object.assign({}, process.env);
 
