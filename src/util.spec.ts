@@ -157,7 +157,7 @@ test('runCliCommand/killProcess on macOS', async () => {
   expect(killMock).toBeCalled();
 });
 
-test.only('runCliCommand/killProcess on Windows', async () => {
+test('runCliCommand/killProcess on Windows', async () => {
   vi.mocked(extensionApi.env).isMac = false;
   vi.mocked(extensionApi.env).isWindows = true;
 
