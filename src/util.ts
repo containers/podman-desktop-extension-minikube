@@ -1,5 +1,5 @@
 /**********************************************************************
- * Copyright (C) 2023 Red Hat, Inc.
+ * Copyright (C) 2023-2024 Red Hat, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,21 +21,8 @@ import * as path from 'node:path';
 import type { ChildProcess } from 'node:child_process';
 import { spawn } from 'node:child_process';
 import * as sudo from 'sudo-prompt';
-import type * as extensionApi from '@podman-desktop/api';
+import * as extensionApi from '@podman-desktop/api';
 import type { MinikubeInstaller } from './minikube-installer';
-
-const windows = os.platform() === 'win32';
-export function isWindows(): boolean {
-  return windows;
-}
-const mac = os.platform() === 'darwin';
-export function isMac(): boolean {
-  return mac;
-}
-const linux = os.platform() === 'linux';
-export function isLinux(): boolean {
-  return linux;
-}
 
 export interface SpawnResult {
   stdOut: string;
@@ -52,7 +39,7 @@ const macosExtraPath = '/usr/local/bin:/opt/homebrew/bin:/opt/local/bin:/opt/pod
 
 export function getMinikubePath(): string {
   const env = process.env;
-  if (isMac()) {
+  if (extensionApi.env.isMac) {
     if (!env.PATH) {
       return macosExtraPath;
     } else {
@@ -78,7 +65,9 @@ export async function detectMinikube(pathAddition: string, installer: MinikubeIn
       await runCliCommand(assetInfo.name, ['version'], {
         env: { PATH: getMinikubePath().concat(path.delimiter).concat(pathAddition) },
       });
-      return pathAddition.concat(path.sep).concat(isWindows() ? assetInfo.name + '.exe' : assetInfo.name);
+      return pathAddition
+        .concat(path.sep)
+        .concat(extensionApi.env.isWindows ? assetInfo.name + '.exe' : assetInfo.name);
     } catch (e) {
       console.error(e);
     }
@@ -99,9 +88,9 @@ export function runCliCommand(
     let env = Object.assign({}, process.env); // clone original env object
 
     // In production mode, applications don't have access to the 'user' path like brew
-    if (isMac() || isWindows()) {
+    if (extensionApi.env.isMac || extensionApi.env.isWindows) {
       env.PATH = getMinikubePath();
-      if (isWindows()) {
+      if (extensionApi.env.isWindows) {
         // Escape any whitespaces in command
         command = `"${command}"`;
       }
@@ -115,8 +104,7 @@ export function runCliCommand(
       env = Object.assign(env, options.env);
     }
 
-    const spawnProcess = spawn(command, args, { shell: isWindows(), env });
-
+    const spawnProcess = spawn(command, args, { shell: extensionApi.env.isWindows, env });
     // if the token is cancelled, kill the process and reject the promise
     token?.onCancellationRequested(() => {
       killProcess(spawnProcess);
@@ -232,7 +220,7 @@ export async function installBinaryToSystem(binaryPath: string, binaryName: stri
 }
 
 function killProcess(spawnProcess: ChildProcess) {
-  if (isWindows()) {
+  if (extensionApi.env.isWindows) {
     spawn('taskkill', ['/pid', spawnProcess.pid?.toString(), '/f', '/t']);
   } else {
     spawnProcess.kill();

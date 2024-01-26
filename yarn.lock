@@ -377,10 +377,10 @@
     picocolors "^1.0.0"
     tslib "^2.5.0"
 
-"@podman-desktop/api@^1.0.1":
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/@podman-desktop/api/-/api-1.0.1.tgz#4d3caae333726db1d919e44568b2966d6e33f85d"
-  integrity sha512-iI4/U+AhaGz4WgcPNT4PjzhL3aHsGLXsgBSnS+BV9hitjNbcVKicCO3kHmPkmjATn0tBDCDhPkUXkI7aCHi01A==
+"@podman-desktop/api@^1.6.4":
+  version "1.6.4"
+  resolved "https://registry.yarnpkg.com/@podman-desktop/api/-/api-1.6.4.tgz#f6da8228523e787f408d366f1d99d12a7b9e6924"
+  integrity sha512-8sxPcFvepxVM0iANq9h+QbnxAPAEE03KhrDTUp8AEzMPHZhascBSi11xhaLaDUujXVaKHUysEt0hh+0ccL479w==
 
 "@types/chai-subset@^1.3.3":
   version "1.3.3"
