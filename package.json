@@ -74,7 +74,6 @@
     "watch": "vite build -w"
   },
   "dependencies": {
-    "sudo-prompt": "^9.2.1",
     "@octokit/rest": "^20.0.2",
     "@types/node": "^18",
     "tmp-promise": "^3.0.3"

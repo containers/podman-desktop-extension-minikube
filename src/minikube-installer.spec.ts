@@ -32,6 +32,9 @@ vi.mock('@podman-desktop/api', async () => {
       withProgress: vi.fn(),
       showNotification: vi.fn(),
     },
+    process: {
+      exec: vi.fn(),
+    },
     env: {
       isWindows: vi.fn(),
     },
@@ -88,6 +91,24 @@ test('error: expect installBinaryToSystem to fail with a non existing binary', a
   Object.defineProperty(process, 'platform', {
     value: 'linux',
   });
+
+  vi.spyOn(extensionApi.process, 'exec').mockImplementation(
+    () =>
+      new Promise<extensionApi.RunResult>((_, reject) => {
+        const error: extensionApi.RunError = {
+          name: '',
+          message: 'Command failed',
+          exitCode: 1603,
+          command: 'command',
+          stdout: 'stdout',
+          stderr: 'stderr',
+          cancelled: false,
+          killed: false,
+        };
+
+        reject(error);
+      }),
+  );
 
   // Run installBinaryToSystem with a non-binary file
   try {

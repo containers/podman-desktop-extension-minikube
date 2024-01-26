@@ -20,9 +20,9 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import type { ChildProcess } from 'node:child_process';
 import { spawn } from 'node:child_process';
-import * as sudo from 'sudo-prompt';
 import * as extensionApi from '@podman-desktop/api';
 import type { MinikubeInstaller } from './minikube-installer';
+import * as fs from 'node:fs';
 
 export interface SpawnResult {
   stdOut: string;
@@ -168,7 +168,7 @@ export async function installBinaryToSystem(binaryPath: string, binaryName: stri
   // Before copying the file, make sure it's executable (chmod +x) for Linux and Mac
   if (system === 'linux' || system === 'darwin') {
     try {
-      await runCliCommand('chmod', ['+x', binaryPath]);
+      await extensionApi.process.exec('chmod', ['+x', binaryPath]);
       console.log(`Made ${binaryPath} executable`);
     } catch (error) {
       throw new Error(`Error making binary executable: ${error}`);
@@ -178,44 +178,37 @@ export async function installBinaryToSystem(binaryPath: string, binaryName: stri
   // Create the appropriate destination path (Windows uses AppData/Local, Linux and Mac use /usr/local/bin)
   // and the appropriate command to move the binary to the destination path
   let destinationPath: string;
-  let command: string[];
-  if (system == 'win32') {
+  let command: string;
+  let args: string[];
+  if (system === 'win32') {
     destinationPath = path.join(os.homedir(), 'AppData', 'Local', 'Microsoft', 'WindowsApps', `${binaryName}.exe`);
-    command = ['copy', binaryPath, destinationPath];
+    command = 'copy';
+    args = [`"${binaryPath}"`, `"${destinationPath}"`];
   } else {
     destinationPath = path.join('/usr/local/bin', binaryName);
-    command = ['cp', binaryPath, destinationPath];
+    command = 'cp';
+    args = [binaryPath, destinationPath];
   }
 
-  // If windows or mac, use sudo-prompt to elevate the privileges
-  // if Linux, use sudo and polkit support
-  if (system === 'win32' || system === 'darwin') {
-    return new Promise<void>((resolve, reject) => {
-      // Convert the command array to a string for sudo prompt
-      // the name is used for the prompt
-      const sudoOptions = {
-        name: `${binaryName} Binary Installation`,
-      };
-      const sudoCommand = command.join(' ');
-      sudo.exec(sudoCommand, sudoOptions, error => {
-        if (error) {
-          console.error(`Failed to install '${binaryName}' binary: ${error}`);
-          reject(error);
-        } else {
-          console.log(`Successfully installed '${binaryName}' binary.`);
-          resolve();
-        }
-      });
-    });
-  } else {
-    try {
-      // Use pkexec in order to elevate the prileges / ask for password for copying to /usr/local/bin
-      await runCliCommand('pkexec', command);
-      console.log(`Successfully installed '${binaryName}' binary.`);
-    } catch (error) {
-      console.error(`Failed to install '${binaryName}' binary: ${error}`);
-      throw error;
+  // If on macOS or Linux, check to see if the /usr/local/bin directory exists,
+  // if it does not, then add mkdir -p /usr/local/bin to the start of the command when moving the binary.
+  const localBinDir = '/usr/local/bin';
+  if ((system === 'linux' || system === 'darwin') && !fs.existsSync(localBinDir)) {
+    if (system === 'darwin') {
+      args.unshift('mkdir', '-p', localBinDir, '&&');
+    } else {
+      // add mkdir -p /usr/local/bin just after the first item or args array (so it'll be in the -c shell instruction)
+      args[args.length - 1] = `mkdir -p /usr/local/bin && ${args[args.length - 1]}`;
     }
+  }
+
+  try {
+    // Use admin prileges / ask for password for copying to /usr/local/bin
+    await extensionApi.process.exec(command, args, { isAdmin: true });
+    console.log(`Successfully installed '${binaryName}' binary.`);
+  } catch (error) {
+    console.error(`Failed to install '${binaryName}' binary: ${error}`);
+    throw error;
   }
 }
 
