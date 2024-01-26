@@ -21,7 +21,7 @@ import * as os from 'node:os';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { Octokit } from '@octokit/rest';
-import { isWindows, installBinaryToSystem } from './util';
+import { installBinaryToSystem } from './util';
 import type { components } from '@octokit/openapi-types';
 
 const githubOrganization = 'kubernetes';
@@ -133,7 +133,7 @@ export class MinikubeInstaller {
                   fs.mkdirSync(this.storagePath);
                 }
                 fs.appendFileSync(destFile, Buffer.from(asset.data as unknown as ArrayBuffer));
-                if (!isWindows()) {
+                if (!extensionApi.env.isWindows) {
                   const stat = fs.statSync(destFile);
                   fs.chmodSync(destFile, stat.mode | fs.constants.S_IXUSR);
                 }
