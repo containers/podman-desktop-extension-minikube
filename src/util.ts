@@ -50,10 +50,19 @@ export function getMinikubePath(): string {
   }
 }
 
+export function getMinikubeHome(): string {
+  const env = process.env
+  if (!env.MINIKUBE_HOME || env.MINIKUBE_HOME === '') {
+    return path.join(os.homedir(), '.minikube')
+  } else {
+    return env.MINIKUBE_HOME
+  }
+}
+
 // search if minikube is available in the path
 export async function detectMinikube(pathAddition: string, installer: MinikubeInstaller): Promise<string> {
   try {
-    await runCliCommand('minikube', ['version'], { env: { PATH: getMinikubePath() } });
+    await runCliCommand('minikube', ['version'], { env: { PATH: getMinikubePath(), MINIKUBE_HOME: getMinikubeHome() } });
     return 'minikube';
   } catch (e) {
     // ignore and try another way
@@ -63,7 +72,10 @@ export async function detectMinikube(pathAddition: string, installer: MinikubeIn
   if (assetInfo) {
     try {
       await runCliCommand(assetInfo.name, ['version'], {
-        env: { PATH: getMinikubePath().concat(path.delimiter).concat(pathAddition) },
+        env: {
+          PATH: getMinikubePath().concat(path.delimiter).concat(pathAddition),
+          MINIKUBE_HOME: getMinikubeHome()
+        },
       });
       return pathAddition
         .concat(path.sep)
