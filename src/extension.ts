@@ -17,12 +17,13 @@
  ***********************************************************************/
 
 import * as extensionApi from '@podman-desktop/api';
-import { detectMinikube, getMinikubePath, runCliCommand } from './util';
+import { detectMinikube, getMinikubePath, getMinikubeHome, runCliCommand } from './util';
 import { MinikubeInstaller } from './minikube-installer';
 import type { CancellationToken, Logger } from '@podman-desktop/api';
 import { window } from '@podman-desktop/api';
 import { ImageHandler } from './image-handler';
 import { createCluster } from './create-cluster';
+import { get } from 'node:http';
 
 const API_MINIKUBE_INTERNAL_API_PORT = 8443;
 
@@ -123,6 +124,7 @@ async function updateClusters(provider: extensionApi.Provider, containers: exten
         delete: async (logger): Promise<void> => {
           const env = Object.assign({}, process.env);
           env.PATH = getMinikubePath();
+          env.MINIKUBE_HOME = getMinikubeHome();
           await runCliCommand(minikubeCli, ['delete', '--profile', cluster.name], { env, logger });
         },
       };

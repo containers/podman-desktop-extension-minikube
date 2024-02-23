@@ -20,7 +20,7 @@
 
 import * as extensionApi from '@podman-desktop/api';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
-import { detectMinikube, getMinikubePath, installBinaryToSystem, runCliCommand } from './util';
+import { detectMinikube, getMinikubePath, getMinikubeHome, installBinaryToSystem, runCliCommand } from './util';
 import * as childProcess from 'node:child_process';
 import type { MinikubeInstaller } from './minikube-installer';
 import * as fs from 'node:fs';
@@ -84,6 +84,26 @@ test('getMinikubePath on macOS with existing PATH', async () => {
 
   const computedPath = getMinikubePath();
   expect(computedPath).toEqual(`${existingPATH}:/usr/local/bin:/opt/homebrew/bin:/opt/local/bin:/opt/podman/bin`);
+});
+
+test('getMinikubeHome returns default minikube from user home', async () => {
+  delete process.env.MINIKUBE_HOME;
+
+  const mockHOME = '/tmp';
+  process.env.HOME = mockHOME;
+
+  const computedPath = getMinikubeHome();
+  expect(computedPath).toEqual(`${mockHOME}/.minikube`);
+});
+
+test('getMinikubeHome returns MINIKUBE_HOME from environment', async () => {
+  delete process.env.MINIKUBE_HOME;
+
+  const mockMINIKUBE_HOME = '/custom-minikube-home';
+  process.env.MINIKUBE_HOME = mockMINIKUBE_HOME;
+
+  const computedPath = getMinikubeHome();
+  expect(computedPath).toEqual(mockMINIKUBE_HOME);
 });
 
 test.each([

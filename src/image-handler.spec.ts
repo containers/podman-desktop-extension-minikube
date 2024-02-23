@@ -21,7 +21,7 @@ import type { Mock } from 'vitest';
 import { ImageHandler } from './image-handler';
 import * as extensionApi from '@podman-desktop/api';
 import * as fs from 'node:fs';
-import { getMinikubePath, runCliCommand } from './util';
+import { getMinikubePath, getMinikubeHome, runCliCommand } from './util';
 
 let imageHandler: ImageHandler;
 vi.mock('@podman-desktop/api', async () => {
@@ -40,6 +40,7 @@ vi.mock('./util', async () => {
   return {
     runCliCommand: vi.fn().mockReturnValue({ exitCode: 0 }),
     getMinikubePath: vi.fn(),
+    getMinikubeHome: vi.fn(),
   };
 });
 
@@ -126,4 +127,27 @@ test('expect cli is called with right PATH', async () => {
   const env = props.env;
   expect(env).to.have.property('PATH');
   expect(env.PATH).toBe('my-custom-path');
+});
+
+test('expect cli is called with MINIKUBE_HOME set', async () => {
+  (extensionApi.containerEngine.saveImage as Mock).mockImplementation(
+    (engineId: string, id: string, filename: string) => fs.promises.open(filename, 'w'),
+  );
+
+  (getMinikubeHome as Mock).mockReturnValue('custom-minikube-home');
+
+  await imageHandler.moveImage(
+    { engineId: 'dummy', name: 'myimage' },
+    [{ name: 'c1', engineType: 'podman', status: 'started', apiPort: 8443 }],
+    undefined,
+  );
+  expect(getMinikubeHome).toBeCalled();
+
+  expect(runCliCommand).toBeCalledTimes(1);
+  // grab the env parameter of the first call to runCliCommand
+  const props = (runCliCommand as Mock).mock.calls[0][2];
+  expect(props).to.have.property('env');
+  const env = props.env;
+  expect(env).to.have.property('MINIKUBE_HOME');
+  expect(env.MINIKUBE_HOME).toBe('custom-minikube-home');
 });
