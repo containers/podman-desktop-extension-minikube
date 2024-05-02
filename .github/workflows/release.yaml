@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2023 Red Hat, Inc.
+# Copyright (C) 2023-2024 Red Hat, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -48,6 +48,7 @@ jobs:
       - name: tag
         run: |
           git config --local user.name ${{ github.actor }}
+          git config --local user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
 
           # Add the new version in package.json file
           sed -i  "s#version\":\ \"\(.*\)\",#version\":\ \"${{ steps.TAG_UTIL.outputs.minikubeExtensionVersion }}\",#g" package.json
@@ -58,6 +59,7 @@ jobs:
           echo "Tagging with ${{ steps.TAG_UTIL.outputs.githubTag }}"
           git tag ${{ steps.TAG_UTIL.outputs.githubTag }}
           git push origin ${{ steps.TAG_UTIL.outputs.githubTag }}
+
       - name: Create Release
         id: create_release
         uses: ncipollo/release-action@v1
@@ -73,7 +75,7 @@ jobs:
         if: ${{ github.event.inputs.branch == 'main' }}
         run: |
           git config --local user.name ${{ github.actor }}
-          git config --local user.email "fbenoit@redhat.com"
+          git config --local user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
           CURRENT_VERSION=$(echo "${{ steps.TAG_UTIL.outputs.minikubeExtensionVersion }}")
           tmp=${CURRENT_VERSION%.*}
           minor=${tmp#*.}
@@ -84,13 +86,14 @@ jobs:
           git add package.json
           git commit -s --amend -m "chore: bump version to ${bumpedVersion}"
           git push origin "${bumpedBranchName}"
-          echo -e "📢 Bump version to ${bumpedVersion}\n\n${{ steps.TAG_UTIL.outputs.desktopVersion }} has been released.\n\n Time to switch to the new ${bumpedVersion} version 🥳" > /tmp/pr-title
+          echo -e "📢 Bump version to ${bumpedVersion}\n\n${{ steps.TAG_UTIL.outputs.minikubeExtensionVersion }} has been released.\n\n Time to switch to the new ${bumpedVersion} version 🥳" > /tmp/pr-title
           pullRequestUrl=$(gh pr create --title "chore: 📢 Bump version to ${bumpedVersion}" --body-file /tmp/pr-title --head "${bumpedBranchName}" --base "main")
           echo "📢 Pull request created: ${pullRequestUrl}"
           echo "➡️ Flag the PR as being ready for review"
           gh pr ready "${pullRequestUrl}"
           echo "🔅 Mark the PR as being ok to be merged automatically"
           gh pr merge "${pullRequestUrl}" --auto --rebase
+          sed -i  "s#version\":\ \"\(.*\)\",#version\":\ \"${CURRENT_VERSION}\",#g" package.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -125,5 +128,8 @@ jobs:
         run: |
           IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/podman-desktop-extension-minikube
           IMAGE_WITH_TAG=${IMAGE_NAME}:${{ steps.TAG_UTIL.outputs.minikubeExtensionVersion }}
+          IMAGE_LATEST=${IMAGE_NAME}:latest
           podman build -t $IMAGE_WITH_TAG .
           podman push $IMAGE_WITH_TAG
+          podman tag $IMAGE_WITH_TAG $IMAGE_LATEST
+          podman push $IMAGE_LATEST
