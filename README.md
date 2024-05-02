@@ -26,7 +26,7 @@ git clone https://github.com/containers/podman-desktop
 git clone https://github.com/containers/podman-desktop-extension-minikube
 cd podman-desktop-extension-minikube
 yarn install
-yarn build
+yarn watch
 cd ../podman-desktop
 yarn watch --extension-folder ../podman-desktop-extension-minikube
 ```
