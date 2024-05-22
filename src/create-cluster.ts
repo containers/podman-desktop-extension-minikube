@@ -15,9 +15,10 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  ***********************************************************************/
-import { getMinikubePath, runCliCommand } from './util';
+import { getMinikubePath } from './util';
 
 import type { Logger, TelemetryLogger, CancellationToken } from '@podman-desktop/api';
+import { process as processApi } from '@podman-desktop/api';
 
 export async function createCluster(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -52,7 +53,7 @@ export async function createCluster(
 
   // now execute the command to create the cluster
   try {
-    await runCliCommand(minikubeCli, startArgs, { env, logger }, token);
+    await processApi.exec(minikubeCli, startArgs, { env, logger, token });
     telemetryLogger.logUsage('createCluster', { driver, runtime });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : error;

@@ -60,10 +60,6 @@ const telemetryLoggerMock = {
   logError: telemetryLogErrorMock,
 } as unknown as extensionApi.TelemetryLogger;
 
-vi.mock('runCliCommand', async () => {
-  return vi.fn();
-});
-
 beforeEach(() => {
   installer = new MinikubeInstaller('.', telemetryLoggerMock);
   vi.clearAllMocks();

@@ -21,13 +21,16 @@ import type { Mock } from 'vitest';
 import { ImageHandler } from './image-handler';
 import * as extensionApi from '@podman-desktop/api';
 import * as fs from 'node:fs';
-import { getMinikubePath, runCliCommand } from './util';
+import { getMinikubePath } from './util';
 
 let imageHandler: ImageHandler;
 vi.mock('@podman-desktop/api', async () => {
   return {
     containerEngine: {
       saveImage: vi.fn(),
+    },
+    process: {
+      exec: vi.fn(),
     },
     window: {
       showNotification: vi.fn(),
@@ -38,7 +41,6 @@ vi.mock('@podman-desktop/api', async () => {
 
 vi.mock('./util', async () => {
   return {
-    runCliCommand: vi.fn().mockReturnValue({ exitCode: 0 }),
     getMinikubePath: vi.fn(),
   };
 });
@@ -119,9 +121,9 @@ test('expect cli is called with right PATH', async () => {
   );
   expect(getMinikubePath).toBeCalled();
 
-  expect(runCliCommand).toBeCalledTimes(1);
-  // grab the env parameter of the first call to runCliCommand
-  const props = (runCliCommand as Mock).mock.calls[0][2];
+  expect(extensionApi.process.exec).toBeCalledTimes(1);
+  // grab the env parameter of the first call to process.Exec
+  const props = (extensionApi.process.exec as Mock).mock.calls[0][2];
   expect(props).to.have.property('env');
   const env = props.env;
   expect(env).to.have.property('PATH');

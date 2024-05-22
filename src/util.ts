@@ -18,8 +18,6 @@
 
 import * as os from 'node:os';
 import * as path from 'node:path';
-import type { ChildProcess } from 'node:child_process';
-import { spawn } from 'node:child_process';
 import * as extensionApi from '@podman-desktop/api';
 import type { MinikubeInstaller } from './minikube-installer';
 import * as fs from 'node:fs';
@@ -53,7 +51,7 @@ export function getMinikubePath(): string {
 // search if minikube is available in the path
 export async function detectMinikube(pathAddition: string, installer: MinikubeInstaller): Promise<string> {
   try {
-    await runCliCommand('minikube', ['version'], { env: { PATH: getMinikubePath() } });
+    await extensionApi.process.exec('minikube', ['version'], { env: { PATH: getMinikubePath() } });
     return 'minikube';
   } catch (e) {
     // ignore and try another way
@@ -62,7 +60,7 @@ export async function detectMinikube(pathAddition: string, installer: MinikubeIn
   const assetInfo = await installer.getAssetInfo();
   if (assetInfo) {
     try {
-      await runCliCommand(assetInfo.name, ['version'], {
+      await extensionApi.process.exec(assetInfo.name, ['version'], {
         env: { PATH: getMinikubePath().concat(path.delimiter).concat(pathAddition) },
       });
       return pathAddition
@@ -73,88 +71,6 @@ export async function detectMinikube(pathAddition: string, installer: MinikubeIn
     }
   }
   return undefined;
-}
-
-export function runCliCommand(
-  command: string,
-  args: string[],
-  options?: RunOptions,
-  token?: extensionApi.CancellationToken,
-): Promise<SpawnResult> {
-  return new Promise((resolve, reject) => {
-    let stdOut = '';
-    let stdErr = '';
-    let err = '';
-    let env = Object.assign({}, process.env); // clone original env object
-
-    // In production mode, applications don't have access to the 'user' path like brew
-    if (extensionApi.env.isMac || extensionApi.env.isWindows) {
-      env.PATH = getMinikubePath();
-      if (extensionApi.env.isWindows) {
-        // Escape any whitespaces in command
-        command = `"${command}"`;
-      }
-    } else if (env.FLATPAK_ID) {
-      // need to execute the command on the host
-      args = ['--host', command, ...args];
-      command = 'flatpak-spawn';
-    }
-
-    if (options?.env) {
-      env = Object.assign(env, options.env);
-    }
-
-    const spawnProcess = spawn(command, args, { shell: extensionApi.env.isWindows, env });
-    // if the token is cancelled, kill the process and reject the promise
-    token?.onCancellationRequested(() => {
-      killProcess(spawnProcess);
-      options?.logger?.error('Execution cancelled');
-      // reject the promise
-      reject(new Error('Execution cancelled'));
-    });
-    // do not reject as we want to store exit code in the result
-    spawnProcess.on('error', error => {
-      if (options?.logger) {
-        options.logger.error(error);
-      }
-      stdErr += error;
-      err += error;
-    });
-
-    spawnProcess.stdout.setEncoding('utf8');
-    spawnProcess.stdout.on('data', data => {
-      if (options?.logger) {
-        options.logger.log(data);
-      }
-      stdOut += data;
-    });
-    spawnProcess.stderr.setEncoding('utf8');
-    spawnProcess.stderr.on('data', data => {
-      if (args?.[0] === 'create' || args?.[0] === 'delete') {
-        if (options?.logger) {
-          options.logger.log(data);
-        }
-        if (typeof data === 'string' && data.indexOf('error') >= 0) {
-          stdErr += data;
-        } else {
-          stdOut += data;
-        }
-      } else {
-        stdErr += data;
-      }
-    });
-
-    spawnProcess.on('close', exitCode => {
-      if (exitCode == 0) {
-        resolve({ stdOut, stdErr, error: err });
-      } else {
-        if (options?.logger) {
-          options.logger.error(stdErr);
-        }
-        reject(new Error(stdErr));
-      }
-    });
-  });
 }
 
 // Takes a binary path (e.g. /tmp/minikube) and installs it to the system. Renames it based on binaryName
@@ -209,13 +125,5 @@ export async function installBinaryToSystem(binaryPath: string, binaryName: stri
   } catch (error) {
     console.error(`Failed to install '${binaryName}' binary: ${error}`);
     throw error;
-  }
-}
-
-function killProcess(spawnProcess: ChildProcess) {
-  if (extensionApi.env.isWindows) {
-    spawn('taskkill', ['/pid', spawnProcess.pid?.toString(), '/f', '/t']);
-  } else {
-    spawnProcess.kill();
   }
 }
