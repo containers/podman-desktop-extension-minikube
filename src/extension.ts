@@ -109,8 +109,9 @@ async function updateClusters(provider: extensionApi.Provider, containers: exten
       const lifecycle: extensionApi.ProviderConnectionLifecycle = {
         start: async (): Promise<void> => {
           try {
-            // start the container
-            await extensionApi.containerEngine.startContainer(cluster.engineId, cluster.id);
+            const env = Object.assign({}, process.env);
+            env.PATH = getMinikubePath();
+            await extensionApi.process.exec(minikubeCli, ['start', '--profile', cluster.name], { env });
           } catch (err) {
             console.error(err);
             // propagate the error
@@ -118,7 +119,9 @@ async function updateClusters(provider: extensionApi.Provider, containers: exten
           }
         },
         stop: async (): Promise<void> => {
-          await extensionApi.containerEngine.stopContainer(cluster.engineId, cluster.id);
+          const env = Object.assign({}, process.env);
+          env.PATH = getMinikubePath();
+          await extensionApi.process.exec(minikubeCli, ['stop', '--profile', cluster.name, '--keep-context-active'], { env });
         },
         delete: async (logger): Promise<void> => {
           const env = Object.assign({}, process.env);
