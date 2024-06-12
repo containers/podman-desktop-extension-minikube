@@ -258,6 +258,7 @@ export async function activate(extensionContext: extensionApi.ExtensionContext):
             (err: unknown) => window.showErrorMessage('Minikube installation failed ' + err),
           ),
         ),
+        statusBarItem,
       );
       statusBarItem.show();
     }
