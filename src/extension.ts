@@ -121,7 +121,9 @@ async function updateClusters(provider: extensionApi.Provider, containers: exten
         stop: async (): Promise<void> => {
           const env = Object.assign({}, process.env);
           env.PATH = getMinikubePath();
-          await extensionApi.process.exec(minikubeCli, ['stop', '--profile', cluster.name, '--keep-context-active'], { env });
+          await extensionApi.process.exec(minikubeCli, ['stop', '--profile', cluster.name, '--keep-context-active'], {
+            env,
+          });
         },
         delete: async (logger): Promise<void> => {
           const env = Object.assign({}, process.env);
