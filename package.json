@@ -14,6 +14,11 @@
     "configuration": {
       "title": "Minikube",
       "properties": {
+        "minikube.home": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Path for the `.minikube` directory that minikube uses for state/configuration. See [documentation](https://minikube.sigs.k8s.io/docs/handbook/config/#environment-variables)"
+        },
         "minikube.cluster.creation.name": {
           "type": "string",
           "default": "minikube",
@@ -51,7 +56,6 @@
           "scope": "KubernetesProviderConnectionFactory",
           "markdownDescription": "Optional mount definition `host-path:container-path` to include during the start of minikube container. See [documentation](https://minikube.sigs.k8s.io/docs/commands/start/#options)"
         }
-
       }
     },
     "menus": {

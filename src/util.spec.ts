@@ -20,10 +20,20 @@
 
 import * as extensionApi from '@podman-desktop/api';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
-import { detectMinikube, getMinikubePath, installBinaryToSystem } from './util';
+import { detectMinikube, getMinikubePath, getMinikubeHome, installBinaryToSystem } from './util';
 import type { MinikubeInstaller } from './minikube-installer';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+
+const { config } = vi.hoisted(() => {
+  return {
+    config: {
+      get: vi.fn(),
+      has: vi.fn(),
+      update: vi.fn(),
+    },
+  };
+});
 
 vi.mock('@podman-desktop/api', async () => {
   return {
@@ -40,6 +50,9 @@ vi.mock('@podman-desktop/api', async () => {
       isMac: vi.fn(),
       isWindows: vi.fn(),
       isLinux: vi.fn(),
+    },
+    configuration: {
+      getConfiguration: (): extensionApi.Configuration => config,
     },
     ProgressLocation: {
       APP_ICON: 1,
@@ -83,6 +96,34 @@ test('getMinikubePath on macOS with existing PATH', async () => {
 
   const computedPath = getMinikubePath();
   expect(computedPath).toEqual(`${existingPATH}:/usr/local/bin:/opt/homebrew/bin:/opt/local/bin:/opt/podman/bin`);
+});
+
+test('getMinikubeHome with empty configuration property', async () => {
+  const existingEnvHome = '/my-existing-minikube-home';
+  const existingConfigHome = '';
+  process.env.MINIKUBE_HOME = existingEnvHome;
+
+  const spyGetConfiguration = vi.spyOn(config, 'get');
+  spyGetConfiguration.mockReturnValue(existingConfigHome);
+
+  const computedHome = getMinikubeHome();
+
+  expect(computedHome).toEqual(existingEnvHome);
+  expect(computedHome).not.toEqual(existingConfigHome);
+});
+
+test('getMinikubeHome with empty configuration property', async () => {
+  const existingEnvHome = '/my-existing-minikube-home';
+  const existingConfigHome = '/my-another-existing-minikube-home';
+  process.env.MINIKUBE_HOME = existingEnvHome;
+
+  const spyGetConfiguration = vi.spyOn(config, 'get');
+  spyGetConfiguration.mockReturnValue(existingConfigHome);
+
+  const computedHome = getMinikubeHome();
+
+  expect(computedHome).not.toEqual(existingEnvHome);
+  expect(computedHome).toEqual(existingConfigHome);
 });
 
 test('detectMinikube', async () => {

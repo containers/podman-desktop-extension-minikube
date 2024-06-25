@@ -15,7 +15,7 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  ***********************************************************************/
-import { getMinikubePath } from './util';
+import { getMinikubePath, getMinikubeHome } from './util';
 
 import type { Logger, TelemetryLogger, CancellationToken } from '@podman-desktop/api';
 import { process as processApi } from '@podman-desktop/api';
@@ -50,6 +50,8 @@ export async function createCluster(
 
   // update PATH to include minikube
   env.PATH = getMinikubePath();
+
+  env.MINIKUBE_HOME = getMinikubeHome();
 
   // now execute the command to create the cluster
   try {

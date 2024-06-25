@@ -18,7 +18,7 @@
 import type { MinikubeCluster } from './extension';
 import * as extensionApi from '@podman-desktop/api';
 import { tmpName } from 'tmp-promise';
-import { getMinikubePath } from './util';
+import { getMinikubePath, getMinikubeHome } from './util';
 import * as fs from 'node:fs';
 
 type ImageInfo = { engineId: string; name?: string; tag?: string };
@@ -63,6 +63,7 @@ export class ImageHandler {
       }
 
       env.PATH = getMinikubePath();
+      env.MINIKUBE_HOME = getMinikubeHome();
       try {
         // Create a temporary file to store the image
         filename = await tmpName();
