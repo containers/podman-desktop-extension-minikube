@@ -31,6 +31,15 @@ vi.mock('@podman-desktop/api', async () => {
     containerEngine: {
       listContainers: vi.fn(),
     },
+
+    process: {
+      exec: vi.fn(),
+      env: {},
+    },
+
+    env: {
+      isMac: false,
+    },
   };
 });
 
@@ -56,4 +65,53 @@ test('check we received notifications ', async () => {
   refreshMinikubeClustersOnProviderConnectionUpdate(fakeProvider);
   expect(callbackCalled).toBeTruthy();
   expect(listContainersMock).toBeCalledTimes(1);
+});
+
+test('verify that the minikube cli is used to start/stop the minikube container', async () => {
+  const onDidUpdateContainerConnectionMock = vi.fn();
+  (podmanDesktopApi.provider as any).onDidUpdateContainerConnection = onDidUpdateContainerConnectionMock;
+
+  const listContainersMock = vi.fn();
+  (podmanDesktopApi.containerEngine as any).listContainers = listContainersMock;
+  listContainersMock.mockResolvedValue([
+    {
+      Labels: {
+        'name.minikube.sigs.k8s.io': 'minikube',
+      },
+      State: 'stopped',
+      Ports: [],
+      engineType: 'podman',
+      engineId: 'engine',
+      Id: '1',
+    } as unknown as podmanDesktopApi.ContainerInfo,
+  ]);
+
+  onDidUpdateContainerConnectionMock.mockImplementation((callback: any) => {
+    callback();
+  });
+
+  const connections: podmanDesktopApi.KubernetesProviderConnection[] = [];
+  const fakeProvider = {
+    registerKubernetesProviderConnection: vi
+      .fn()
+      .mockImplementation((connection: podmanDesktopApi.KubernetesProviderConnection) => {
+        connections.push(connection);
+      }),
+  } as unknown as podmanDesktopApi.Provider;
+  const mockExec = vi.spyOn(podmanDesktopApi.process, 'exec');
+  refreshMinikubeClustersOnProviderConnectionUpdate(fakeProvider);
+
+  await vi.waitUntil(() => connections.length > 0, { timeout: 5000 });
+
+  await connections[0].lifecycle.start?.({} as unknown as podmanDesktopApi.LifecycleContext);
+
+  expect(mockExec).toBeCalledWith(undefined, ['start', '--profile', 'minikube'], expect.any(Object));
+
+  await connections[0].lifecycle.stop?.({} as unknown as podmanDesktopApi.LifecycleContext);
+
+  expect(mockExec).toBeCalledWith(
+    undefined,
+    ['stop', '--profile', 'minikube', '--keep-context-active'],
+    expect.any(Object),
+  );
 });
