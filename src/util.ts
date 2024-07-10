@@ -110,12 +110,7 @@ export async function installBinaryToSystem(binaryPath: string, binaryName: stri
   // if it does not, then add mkdir -p /usr/local/bin to the start of the command when moving the binary.
   const localBinDir = '/usr/local/bin';
   if ((system === 'linux' || system === 'darwin') && !fs.existsSync(localBinDir)) {
-    if (system === 'darwin') {
-      args.unshift('mkdir', '-p', localBinDir, '&&');
-    } else {
-      // add mkdir -p /usr/local/bin just after the first item or args array (so it'll be in the -c shell instruction)
-      args[args.length - 1] = `mkdir -p /usr/local/bin && ${args[args.length - 1]}`;
-    }
+    await extensionApi.process.exec('mkdir', ['-p', localBinDir], { isAdmin: true });
   }
 
   try {
