@@ -178,8 +178,13 @@ test('expect: installBinaryToSystem on linux with /usr/local/bin NOT created yet
 
   // check called with admin being true
   expect(extensionApi.process.exec).toBeCalledWith(
+    'mkdir',
+    ['-p', '/usr/local/bin'],
+    expect.objectContaining({ isAdmin: true }),
+  );
+  expect(extensionApi.process.exec).toBeCalledWith(
     'cp',
-    ['test', `mkdir -p /usr/local/bin && ${path.sep}usr${path.sep}local${path.sep}bin${path.sep}tmpBinary`],
+    ['test', `${path.sep}usr${path.sep}local${path.sep}bin${path.sep}tmpBinary`],
     expect.objectContaining({ isAdmin: true }),
   );
 });
