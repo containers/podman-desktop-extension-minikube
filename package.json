@@ -80,7 +80,7 @@
   },
   "devDependencies": {
     "7zip-min": "^1.4.4",
-    "@podman-desktop/api": "^1.10.0",
+    "@podman-desktop/api": "^1.11.1",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^6.21.0",
     "@vitest/coverage-v8": "^1.2.2",
