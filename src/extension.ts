@@ -24,6 +24,7 @@ import { window } from '@podman-desktop/api';
 import { ImageHandler } from './image-handler';
 import { createCluster } from './create-cluster';
 import { MinikubeDownload } from './download';
+import { Octokit } from '@octokit/rest';
 
 const API_MINIKUBE_INTERNAL_API_PORT = 8443;
 
@@ -315,7 +316,8 @@ async function postActivate(extensionContext: extensionApi.ExtensionContext): Pr
     path: minikubeCli,
   });
 
-  const minikubeDownload = new MinikubeDownload(extensionContext);
+  const octokit = new Octokit();
+  const minikubeDownload = new MinikubeDownload(extensionContext, octokit);
 
   // check if there is a new version to be installed and register the updater
   const lastReleaseMetadata = await minikubeDownload.getLatestVersionAsset();
@@ -323,7 +325,7 @@ async function postActivate(extensionContext: extensionApi.ExtensionContext): Pr
   if (lastReleaseVersion !== binaryVersion) {
     const minikubeCliToolUpdaterDisposable = minikubeCliTool.registerUpdate({
       version: lastReleaseVersion,
-      doUpdate: async _logger => {
+      doUpdate: async () => {
         // download, install system wide and update cli version
         try {
           const destFile = await minikubeDownload.download(lastReleaseMetadata);

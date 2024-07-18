@@ -21,9 +21,9 @@ import { arch, platform } from 'node:os';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 
-import * as extensionApi from '@podman-desktop/api';
+import type * as extensionApi from '@podman-desktop/api';
 
-import { Octokit } from '@octokit/rest';
+import type { Octokit } from '@octokit/rest';
 
 export interface MinikubeGithubReleaseArtifactMetadata {
   tag: string;
@@ -34,14 +34,16 @@ const githubOrganization = 'kubernetes';
 const githubRepo = 'minikube';
 
 export class MinikubeDownload {
-  constructor(private readonly extensionContext: extensionApi.ExtensionContext) {}
+  constructor(
+    private readonly extensionContext: extensionApi.ExtensionContext,
+    private readonly octokit: Octokit,
+  ) {}
 
   // Provides last 5 majors releases from GitHub using the GitHub API
   // return name, tag and id of the release
   async grabLatestsReleasesMetadata(): Promise<MinikubeGithubReleaseArtifactMetadata[]> {
     // Grab last 5 majors releases from GitHub using the GitHub API
-    const octokit = new Octokit();
-    const lastReleases = await octokit.repos.listReleases({
+    const lastReleases = await this.octokit.repos.listReleases({
       owner: githubOrganization,
       repo: githubRepo,
       per_page: 10,
@@ -111,8 +113,7 @@ export class MinikubeDownload {
       arch = 'amd64';
     }
 
-    const octokit = new Octokit();
-    const listOfAssets = await octokit.repos.listReleaseAssets({
+    const listOfAssets = await this.octokit.repos.listReleaseAssets({
       owner: githubOrganization,
       repo: githubRepo,
       release_id: releaseId,
@@ -132,8 +133,7 @@ export class MinikubeDownload {
 
   // download the given asset id
   async downloadReleaseAsset(assetId: number, destination: string): Promise<void> {
-    const octokit = new Octokit();
-    const asset = await octokit.repos.getReleaseAsset({
+    const asset = await this.octokit.repos.getReleaseAsset({
       owner: githubOrganization,
       repo: githubRepo,
       asset_id: assetId,
