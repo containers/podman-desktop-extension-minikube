@@ -90,7 +90,7 @@
     "eslint-plugin-etc": "^2.0.3",
     "eslint-plugin-import": "^2.29.1",
     "eslint-plugin-redundant-undefined": "^1.0.0",
-    "eslint-plugin-sonarjs": "^1.0.3",
+    "eslint-plugin-sonarjs": "^1.0.4",
     "mkdirp": "^3.0.1",
     "prettier": "^3.3.3",
     "typescript": "5.5.3",
