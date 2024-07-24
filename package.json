@@ -79,7 +79,7 @@
     "tmp-promise": "^3.0.3"
   },
   "devDependencies": {
-    "7zip-min": "^1.4.4",
+    "7zip-min": "^1.4.5",
     "@podman-desktop/api": "^1.11.1",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^6.21.0",
