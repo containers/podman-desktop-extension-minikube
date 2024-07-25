@@ -25,16 +25,6 @@ import type { MinikubeInstaller } from './minikube-installer';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-const { config } = vi.hoisted(() => {
-  return {
-    config: {
-      get: vi.fn(),
-      has: vi.fn(),
-      update: vi.fn(),
-    },
-  };
-});
-
 vi.mock('@podman-desktop/api', async () => {
   return {
     window: {
@@ -52,7 +42,7 @@ vi.mock('@podman-desktop/api', async () => {
       isLinux: vi.fn(),
     },
     configuration: {
-      getConfiguration: (): extensionApi.Configuration => config,
+      getConfiguration: vi.fn(),
     },
     ProgressLocation: {
       APP_ICON: 1,
@@ -73,9 +63,13 @@ vi.mock('node:fs', async () => {
 });
 
 const originalProcessEnv = process.env;
+const configGetMock = vi.fn();
 beforeEach(() => {
   vi.resetAllMocks();
   process.env = {};
+  vi.mocked(extensionApi.configuration.getConfiguration).mockReturnValue({
+    get: configGetMock,
+  } as unknown as extensionApi.Configuration);
 });
 
 afterEach(() => {
@@ -103,8 +97,7 @@ test('getMinikubeHome with empty configuration property', async () => {
   const existingConfigHome = '';
   process.env.MINIKUBE_HOME = existingEnvHome;
 
-  const spyGetConfiguration = vi.spyOn(config, 'get');
-  spyGetConfiguration.mockReturnValue(existingConfigHome);
+  configGetMock.mockReturnValue(existingConfigHome);
 
   const computedHome = getMinikubeHome();
 
@@ -117,8 +110,7 @@ test('getMinikubeHome with empty configuration property', async () => {
   const existingConfigHome = '/my-another-existing-minikube-home';
   process.env.MINIKUBE_HOME = existingEnvHome;
 
-  const spyGetConfiguration = vi.spyOn(config, 'get');
-  spyGetConfiguration.mockReturnValue(existingConfigHome);
+  configGetMock.mockReturnValue(existingConfigHome);
 
   const computedHome = getMinikubeHome();
 
