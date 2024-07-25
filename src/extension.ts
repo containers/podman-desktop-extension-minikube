@@ -17,7 +17,7 @@
  ***********************************************************************/
 
 import * as extensionApi from '@podman-desktop/api';
-import { detectMinikube, getMinikubePath } from './util';
+import { detectMinikube, getMinikubePath, getMinikubeHome } from './util';
 import { MinikubeInstaller } from './minikube-installer';
 import type { CancellationToken, Logger } from '@podman-desktop/api';
 import { window } from '@podman-desktop/api';
@@ -128,6 +128,7 @@ async function updateClusters(provider: extensionApi.Provider, containers: exten
         delete: async (logger): Promise<void> => {
           const env = Object.assign({}, process.env);
           env.PATH = getMinikubePath();
+          env.MINIKUBE_HOME = getMinikubeHome();
           await extensionApi.process.exec(minikubeCli, ['delete', '--profile', cluster.name], { env, logger });
         },
       };

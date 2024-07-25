@@ -38,6 +38,9 @@ vi.mock('@podman-desktop/api', async () => {
     env: {
       isWindows: vi.fn(),
     },
+    configuration: {
+      getConfiguration: vi.fn(),
+    },
     ProgressLocation: {
       APP_ICON: 1,
     },

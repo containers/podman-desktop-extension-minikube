@@ -31,6 +31,9 @@ vi.mock('@podman-desktop/api', async () => {
     containerEngine: {
       listContainers: vi.fn(),
     },
+    configuration: {
+      getConfiguration: vi.fn(),
+    },
 
     process: {
       exec: vi.fn(),

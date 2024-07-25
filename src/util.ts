@@ -33,6 +33,7 @@ export interface RunOptions {
   logger?: extensionApi.Logger;
 }
 
+const minikubeConfiguration = extensionApi.configuration.getConfiguration('minikube');
 const macosExtraPath = '/usr/local/bin:/opt/homebrew/bin:/opt/local/bin:/opt/podman/bin';
 
 export function getMinikubePath(): string {
@@ -48,10 +49,26 @@ export function getMinikubePath(): string {
   }
 }
 
+export function getMinikubeHome(): string | undefined {
+  const minikubeHome = minikubeConfiguration.get<string>('home');
+  // Check env if configuration is not applied in UI
+  if (!minikubeHome) {
+    const env = process.env;
+    return env.MINIKUBE_HOME;
+  } else {
+    return minikubeHome;
+  }
+}
+
 // search if minikube is available in the path
 export async function detectMinikube(pathAddition: string, installer: MinikubeInstaller): Promise<string> {
   try {
-    await extensionApi.process.exec('minikube', ['version'], { env: { PATH: getMinikubePath() } });
+    await extensionApi.process.exec('minikube', ['version'], {
+      env: {
+        PATH: getMinikubePath(),
+        MINIKUBE_HOME: getMinikubeHome(),
+      },
+    });
     return 'minikube';
   } catch (e) {
     // ignore and try another way
@@ -61,7 +78,10 @@ export async function detectMinikube(pathAddition: string, installer: MinikubeIn
   if (assetInfo) {
     try {
       await extensionApi.process.exec(assetInfo.name, ['version'], {
-        env: { PATH: getMinikubePath().concat(path.delimiter).concat(pathAddition) },
+        env: {
+          PATH: getMinikubePath().concat(path.delimiter).concat(pathAddition),
+          MINIKUBE_HOME: getMinikubeHome(),
+        },
       });
       return pathAddition
         .concat(path.sep)
