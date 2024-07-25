@@ -33,7 +33,6 @@ export interface RunOptions {
   logger?: extensionApi.Logger;
 }
 
-const minikubeConfiguration = extensionApi.configuration.getConfiguration('minikube');
 const macosExtraPath = '/usr/local/bin:/opt/homebrew/bin:/opt/local/bin:/opt/podman/bin';
 
 export function getMinikubePath(): string {
@@ -50,6 +49,7 @@ export function getMinikubePath(): string {
 }
 
 export function getMinikubeHome(): string | undefined {
+  const minikubeConfiguration = extensionApi.configuration.getConfiguration('minikube');
   const minikubeHome = minikubeConfiguration.get<string>('home');
   // Check env if configuration is not applied in UI
   if (!minikubeHome) {
