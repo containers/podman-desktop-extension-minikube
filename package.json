@@ -78,7 +78,7 @@
     "watch": "vite build -w"
   },
   "dependencies": {
-    "@octokit/rest": "^21.0.1",
+    "@octokit/rest": "^21.0.2",
     "@types/node": "^20",
     "tmp-promise": "^3.0.3"
   },
