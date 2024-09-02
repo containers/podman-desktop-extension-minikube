@@ -16,11 +16,12 @@
  * SPDX-License-Identifier: Apache-2.0
  ***********************************************************************/
 
-import { beforeEach, expect, test, vi } from 'vitest';
-import type { Mock } from 'vitest';
-import { createCluster } from './create-cluster';
 import type { TelemetryLogger } from '@podman-desktop/api';
 import * as extensionApi from '@podman-desktop/api';
+import type { Mock } from 'vitest';
+import { beforeEach, expect, test, vi } from 'vitest';
+
+import { createCluster } from './create-cluster';
 
 vi.mock('@podman-desktop/api', async () => {
   return {

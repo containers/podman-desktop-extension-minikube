@@ -20,12 +20,12 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { beforeEach } from 'node:test';
 
+import type { Octokit } from '@octokit/rest';
 import type * as extensionApi from '@podman-desktop/api';
 import { afterEach, expect, test, vi } from 'vitest';
 
 import type { MinikubeGithubReleaseArtifactMetadata } from './download';
 import { MinikubeDownload } from './download';
-import type { Octokit } from '@octokit/rest';
 
 // Create the OS class as well as fake extensionContext
 const extensionContext: extensionApi.ExtensionContext = {

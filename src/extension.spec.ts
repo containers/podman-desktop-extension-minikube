@@ -18,8 +18,9 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { beforeEach, expect, test, vi } from 'vitest';
 import * as podmanDesktopApi from '@podman-desktop/api';
+import { beforeEach, expect, test, vi } from 'vitest';
+
 import { refreshMinikubeClustersOnProviderConnectionUpdate } from './extension';
 
 vi.mock('@podman-desktop/api', async () => {

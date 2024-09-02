@@ -15,11 +15,13 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  ***********************************************************************/
-import type { MinikubeCluster } from './extension';
+import * as fs from 'node:fs';
+
 import * as extensionApi from '@podman-desktop/api';
 import { tmpName } from 'tmp-promise';
-import { getMinikubePath, getMinikubeHome } from './util';
-import * as fs from 'node:fs';
+
+import type { MinikubeCluster } from './extension';
+import { getMinikubeHome, getMinikubePath } from './util';
 
 type ImageInfo = { engineId: string; name?: string; tag?: string };
 
@@ -38,9 +40,9 @@ export class ImageHandler {
 
     // Throw an error if there is no clusters,
     // but if there are multiple ones, prompt the user to select one
-    if (clusters.length == 0) {
+    if (clusters.length === 0) {
       throw new Error('No minikube clusters to push to');
-    } else if (clusters.length == 1) {
+    } else if (clusters.length === 1) {
       selectedCluster = { label: clusters[0].name, engineType: clusters[0].engineType };
     } else {
       selectedCluster = await extensionApi.window.showQuickPick(
