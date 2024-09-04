@@ -16,10 +16,11 @@
  * SPDX-License-Identifier: Apache-2.0
  ***********************************************************************/
 
+import * as extensionApi from '@podman-desktop/api';
 import { tmpName } from 'tmp-promise';
 import { beforeEach, expect, test, vi } from 'vitest';
+
 import { MinikubeInstaller } from './minikube-installer';
-import * as extensionApi from '@podman-desktop/api';
 import { installBinaryToSystem } from './util';
 
 let installer: MinikubeInstaller;
@@ -123,7 +124,7 @@ test('error: expect installBinaryToSystem to fail with a non existing binary', a
 test('expect showNotification to be called', async () => {
   const progress = {
     // eslint-disable-next-line @typescript-eslint/no-empty-function
-    report: () => {},
+    report: (): void => {},
   };
   vi.spyOn(extensionApi.window, 'withProgress').mockImplementation((options, task) => {
     return task(progress, undefined);
@@ -133,7 +134,7 @@ test('expect showNotification to be called', async () => {
   const spy = vi.spyOn(extensionApi.window, 'showNotification').mockImplementation(() => {
     return {
       // eslint-disable-next-line @typescript-eslint/no-empty-function
-      dispose: () => {},
+      dispose: (): void => {},
     };
   });
 

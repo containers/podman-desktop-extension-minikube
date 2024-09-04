@@ -18,12 +18,14 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import * as extensionApi from '@podman-desktop/api';
-import { afterEach, beforeEach, expect, test, vi } from 'vitest';
-import { detectMinikube, getMinikubePath, getMinikubeHome, installBinaryToSystem } from './util';
-import type { MinikubeInstaller } from './minikube-installer';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+
+import * as extensionApi from '@podman-desktop/api';
+import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+
+import type { MinikubeInstaller } from './minikube-installer';
+import { detectMinikube, getMinikubeHome, getMinikubePath, installBinaryToSystem } from './util';
 
 vi.mock('@podman-desktop/api', async () => {
   return {

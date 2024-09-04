@@ -16,15 +16,16 @@
  * SPDX-License-Identifier: Apache-2.0
  ***********************************************************************/
 
-import * as extensionApi from '@podman-desktop/api';
-import { detectMinikube, getMinikubeHome, getMinikubePath, installBinaryToSystem } from './util';
-import { MinikubeInstaller } from './minikube-installer';
+import { Octokit } from '@octokit/rest';
 import type { CancellationToken, Logger } from '@podman-desktop/api';
+import * as extensionApi from '@podman-desktop/api';
 import { window } from '@podman-desktop/api';
-import { ImageHandler } from './image-handler';
+
 import { createCluster } from './create-cluster';
 import { MinikubeDownload } from './download';
-import { Octokit } from '@octokit/rest';
+import { ImageHandler } from './image-handler';
+import { MinikubeInstaller } from './minikube-installer';
+import { detectMinikube, getMinikubeHome, getMinikubePath, installBinaryToSystem } from './util';
 
 const API_MINIKUBE_INTERNAL_API_PORT = 8443;
 
@@ -75,7 +76,7 @@ async function registerProvider(
 }
 
 // search for clusters
-async function updateClusters(provider: extensionApi.Provider, containers: extensionApi.ContainerInfo[]) {
+async function updateClusters(provider: extensionApi.Provider, containers: extensionApi.ContainerInfo[]): void {
   const minikubeContainers = containers.map(container => {
     const clusterName = container.Labels['name.minikube.sigs.k8s.io'];
     const clusterStatus = container.State;
@@ -94,7 +95,7 @@ async function updateClusters(provider: extensionApi.Provider, containers: exten
     return {
       name: clusterName,
       status,
-      apiPort: listeningPort?.PublicPort || 0,
+      apiPort: listeningPort?.PublicPort ?? 0,
       engineType: container.engineType,
       engineId: container.engineId,
       id: container.Id,
@@ -111,7 +112,7 @@ async function updateClusters(provider: extensionApi.Provider, containers: exten
 
   minikubeContainers.forEach(cluster => {
     const item = registeredKubernetesConnections.find(item => item.connection.name === cluster.name);
-    const status = () => {
+    const status = (): string => {
       return cluster.status;
     };
     if (!item) {
@@ -182,10 +183,10 @@ async function searchMinikubeClusters(provider: extensionApi.Provider): Promise<
   const minikubeContainers = allContainers.filter(container => {
     return container.Labels?.['name.minikube.sigs.k8s.io'];
   });
-  await updateClusters(provider, minikubeContainers);
+  return updateClusters(provider, minikubeContainers);
 }
 
-export function refreshMinikubeClustersOnProviderConnectionUpdate(provider: extensionApi.Provider) {
+export function refreshMinikubeClustersOnProviderConnectionUpdate(provider: extensionApi.Provider): void {
   // when a provider is changing, update the status
   extensionApi.provider.onDidUpdateContainerConnection(async () => {
     // needs to search for minikube clusters

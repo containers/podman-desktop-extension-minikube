@@ -15,10 +15,10 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  ***********************************************************************/
-import { getMinikubePath, getMinikubeHome } from './util';
-
-import type { Logger, TelemetryLogger, CancellationToken } from '@podman-desktop/api';
+import type { CancellationToken, Logger, TelemetryLogger } from '@podman-desktop/api';
 import { process as processApi } from '@podman-desktop/api';
+
+import { getMinikubeHome, getMinikubePath } from './util';
 
 export async function createCluster(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

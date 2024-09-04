@@ -17,13 +17,12 @@
  ***********************************************************************/
 
 import { existsSync, promises } from 'node:fs';
+import * as fs from 'node:fs';
 import { arch, platform } from 'node:os';
 import * as path from 'node:path';
-import * as fs from 'node:fs';
-
-import type * as extensionApi from '@podman-desktop/api';
 
 import type { Octokit } from '@octokit/rest';
+import type * as extensionApi from '@podman-desktop/api';
 
 export interface MinikubeGithubReleaseArtifactMetadata {
   tag: string;
