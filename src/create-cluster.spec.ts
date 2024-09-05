@@ -56,7 +56,7 @@ const telemetryLoggerMock = {
 test('expect error is cli returns non zero exit code', async () => {
   try {
     (extensionApi.process.exec as Mock).mockReturnValue({ exitCode: -1, error: 'error' });
-    await createCluster({}, undefined, '', telemetryLoggerMock, undefined);
+    await createCluster({}, undefined, '', telemetryLoggerMock);
   } catch (err) {
     expect(err).to.be.a('Error');
     expect(err.message).equal('Failed to create minikube cluster. error');
@@ -66,7 +66,7 @@ test('expect error is cli returns non zero exit code', async () => {
 
 test('expect cluster to be created', async () => {
   (extensionApi.process.exec as Mock).mockReturnValue({ exitCode: 0 });
-  await createCluster({}, undefined, '', telemetryLoggerMock, undefined);
+  await createCluster({}, undefined, '', telemetryLoggerMock);
   expect(telemetryLogUsageMock).toHaveBeenNthCalledWith(
     1,
     'createCluster',
@@ -85,7 +85,7 @@ test('expect error if Kubernetes reports error', async () => {
       warn: vi.fn(),
     };
     (extensionApi.kubernetes.createResources as Mock).mockRejectedValue(new Error('Kubernetes error'));
-    await createCluster({}, logger, '', telemetryLoggerMock, undefined);
+    await createCluster({}, logger, '', telemetryLoggerMock);
   } catch (err) {
     expect(extensionApi.kubernetes.createResources).toBeCalled();
     expect(err).to.be.a('Error');
@@ -99,13 +99,7 @@ test('expect error if Kubernetes reports error', async () => {
 
 test('expect cluster to be created with custom base image', async () => {
   (extensionApi.process.exec as Mock).mockReturnValue({ exitCode: 0 });
-  await createCluster(
-    { 'minikube.cluster.creation.base-image': 'myCustomImage' },
-    undefined,
-    '',
-    telemetryLoggerMock,
-    undefined,
-  );
+  await createCluster({ 'minikube.cluster.creation.base-image': 'myCustomImage' }, undefined, '', telemetryLoggerMock);
   expect(telemetryLogUsageMock).toHaveBeenNthCalledWith(
     1,
     'createCluster',
@@ -132,13 +126,7 @@ test('expect cluster to be created with custom base image', async () => {
 
 test('expect cluster to be created with custom mount', async () => {
   (extensionApi.process.exec as Mock).mockReturnValue({ exitCode: 0 });
-  await createCluster(
-    { 'minikube.cluster.creation.mount-string': '/foo:/bar' },
-    undefined,
-    '',
-    telemetryLoggerMock,
-    undefined,
-  );
+  await createCluster({ 'minikube.cluster.creation.mount-string': '/foo:/bar' }, undefined, '', telemetryLoggerMock);
   expect(telemetryLogUsageMock).toHaveBeenNthCalledWith(
     1,
     'createCluster',

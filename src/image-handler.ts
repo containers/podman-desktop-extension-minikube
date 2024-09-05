@@ -57,7 +57,7 @@ export class ImageHandler {
     if (selectedCluster) {
       let name = image.name;
       let filename: string;
-      const env = Object.assign({}, process.env);
+      const env = { ...process.env };
 
       // Create a name:tag string for the image
       if (image.tag) {
