@@ -95,6 +95,7 @@ export class MinikubeDownload {
 
   async makeExecutable(filePath: string): Promise<void> {
     if (process.platform === 'darwin' || process.platform === 'linux') {
+      // eslint-disable-next-line sonarjs/file-permissions
       await promises.chmod(filePath, 0o755);
     }
   }
