@@ -34,7 +34,7 @@ export async function createCluster(
   const baseImage = params['minikube.cluster.creation.base-image'];
   const mountString = params['minikube.cluster.creation.mount-string'];
 
-  const env = Object.assign({}, process.env);
+  const env = { ...process.env };
 
   const startArgs = ['start', '--profile', clusterName, '--driver', driver, '--container-runtime', runtime];
 
