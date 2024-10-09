@@ -19,16 +19,16 @@ Go to Extensions > Catalog > Install minikube.
 
 Want to help develop and contribute to the Minikube extension?
 
-You can use `yarn watch --extension-folder` from the Podman Desktop directory to automatically rebuild and test the Minikube extension:
+You can use `pnpm watch --extension-folder` from the Podman Desktop directory to automatically rebuild and test the Minikube extension:
 
 ```sh
 git clone https://github.com/containers/podman-desktop
 git clone https://github.com/containers/podman-desktop-extension-minikube
 cd podman-desktop-extension-minikube
-yarn install
-yarn watch
+pnpm install
+pnpm watch
 cd ../podman-desktop
-yarn watch --extension-folder ../podman-desktop-extension-minikube
+pnpm watch --extension-folder ../podman-desktop-extension-minikube
 ```
 
 ## Feedback
