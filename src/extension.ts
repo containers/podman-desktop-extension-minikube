@@ -22,7 +22,7 @@ import * as extensionApi from '@podman-desktop/api';
 import { window } from '@podman-desktop/api';
 
 import { createCluster } from './create-cluster';
-import { MinikubeDownload } from './download';
+import { MinikubeDownload, MinikubeGithubReleaseArtifactMetadata } from './download';
 import { ImageHandler } from './image-handler';
 import { MinikubeInstaller } from './minikube-installer';
 import { detectMinikube, getMinikubeHome, getMinikubePath, installBinaryToSystem } from './util';
@@ -317,8 +317,41 @@ async function postActivate(extensionContext: extensionApi.ExtensionContext): Pr
     path: minikubeCli,
   });
 
+  // create the client to interact with minikube repository
   const octokit = new Octokit();
   const minikubeDownload = new MinikubeDownload(extensionContext, octokit);
+
+  let releaseToInstall: MinikubeGithubReleaseArtifactMetadata | undefined;
+  minikubeCliTool.registerInstaller({
+    selectVersion: async () => {
+      let lastReleasesMetadata = await minikubeDownload.grabLatestsReleasesMetadata();
+
+      // if the user already has an installed version, we remove it from the list
+      if (binaryVersion) {
+        lastReleasesMetadata = lastReleasesMetadata.filter(release => release.tag.slice(1) !== binaryVersion);
+      }
+
+      // Show the quickpick
+      const selectedRelease = await extensionApi.window.showQuickPick(lastReleasesMetadata, {
+        placeHolder: 'Select Kind version to download',
+      });
+
+      releaseToInstall = selectedRelease;
+      if (selectedRelease) {
+        return selectedRelease.tag.slice(1);
+      } else {
+        throw new Error('No version selected');
+      }
+    },
+    doInstall: async _logger => {
+      if(!releaseToInstall) throw new Error(`Cannot install minikube cli no release selected`);
+
+      await performInstall(minikubeDownload, releaseToInstall);
+
+      releaseToInstall = undefined;
+    },
+    doUninstall: async _logger => {},
+  });
 
   // check if there is a new version to be installed and register the updater
   const lastReleaseMetadata = await minikubeDownload.getLatestVersionAsset();
@@ -326,20 +359,23 @@ async function postActivate(extensionContext: extensionApi.ExtensionContext): Pr
   if (lastReleaseVersion !== binaryVersion) {
     const minikubeCliToolUpdaterDisposable = minikubeCliTool.registerUpdate({
       version: lastReleaseVersion,
-      doUpdate: async () => {
-        // download, install system wide and update cli version
-        try {
-          const destFile = await minikubeDownload.download(lastReleaseMetadata);
-          await installBinaryToSystem(destFile, 'minikube');
-          minikubeCliTool?.updateVersion({
-            version: lastReleaseVersion,
-          });
-          minikubeCliToolUpdaterDisposable?.dispose();
-        } catch (e) {
-          console.error(`Error while downloading minikube: ${String(e)}`);
-        }
-      },
+      doUpdate: async (): Promise<void> => (performInstall(minikubeDownload, lastReleaseMetadata).then(() => {
+        minikubeCliToolUpdaterDisposable?.dispose();
+      })),
     });
+  }
+}
+
+async function performInstall(minikubeDownload: MinikubeDownload, release: MinikubeGithubReleaseArtifactMetadata): Promise<void> {
+  // download, install system wide and update cli version
+  try {
+    const destFile = await minikubeDownload.download(release);
+    await installBinaryToSystem(destFile, 'minikube');
+    minikubeCliTool?.updateVersion({
+      version: release.tag.replace('v', '').trim(),
+    });
+  } catch (e) {
+    console.error(`Error while downloading minikube: ${String(e)}`);
   }
 }
 
