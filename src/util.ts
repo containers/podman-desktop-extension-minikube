@@ -100,7 +100,8 @@ export async function detectMinikube(pathAddition: string, installer: MinikubeIn
 // If using Windows or Mac, we will use sudo-prompt in order to elevate the privileges
 // If using Linux, we'll use pkexec and polkit support to ask for privileges.
 // When running in a flatpak, we'll use flatpak-spawn to execute the command on the host
-export async function installBinaryToSystem(binaryPath: string, binaryName: string): Promise<void> {
+// @return the system-wide path where it is installed
+export async function installBinaryToSystem(binaryPath: string, binaryName: string): Promise<string> {
   const system = process.platform;
 
   // Before copying the file, make sure it's executable (chmod +x) for Linux and Mac
@@ -139,6 +140,7 @@ export async function installBinaryToSystem(binaryPath: string, binaryName: stri
     // Use admin prileges / ask for password for copying to /usr/local/bin
     await extensionApi.process.exec(command, args, { isAdmin: true });
     console.log(`Successfully installed '${binaryName}' binary.`);
+    return destinationPath;
   } catch (error) {
     console.error(`Failed to install '${binaryName}' binary: ${error}`);
     throw error;

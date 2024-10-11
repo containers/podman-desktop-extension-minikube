@@ -46,6 +46,7 @@ const registeredKubernetesConnections: {
   disposable: extensionApi.Disposable;
 }[] = [];
 
+// the path of the tool
 let minikubeCli: string | undefined;
 let minikubeCliTool: extensionApi.CliTool | undefined;
 
@@ -350,7 +351,11 @@ async function postActivate(extensionContext: extensionApi.ExtensionContext): Pr
 
       releaseToInstall = undefined;
     },
-    doUninstall: async _logger => {},
+    doUninstall: async _logger => {
+      if (!binaryVersion) {
+        throw new Error(`Cannot uninstall minikube. No version detected.`);
+      }
+    },
   });
 
   // check if there is a new version to be installed and register the updater
@@ -367,15 +372,19 @@ async function postActivate(extensionContext: extensionApi.ExtensionContext): Pr
 }
 
 async function performInstall(minikubeDownload: MinikubeDownload, release: MinikubeGithubReleaseArtifactMetadata): Promise<void> {
-  // download, install system wide and update cli version
+  // download the cli
+  const destFile = await minikubeDownload.download(release);
+  let path = destFile;
   try {
-    const destFile = await minikubeDownload.download(release);
-    await installBinaryToSystem(destFile, 'minikube');
+    // install system-wide
+    path = await installBinaryToSystem(destFile, 'minikube');
+  } catch (e: unknown) {
+    console.warn(`cannot install minikube system-wide: ${String(e)}`);
+  } finally {
     minikubeCliTool?.updateVersion({
+      path,
       version: release.tag.replace('v', '').trim(),
     });
-  } catch (e) {
-    console.error(`Error while downloading minikube: ${String(e)}`);
   }
 }
 
