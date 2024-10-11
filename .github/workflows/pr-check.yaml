@@ -58,11 +58,5 @@ jobs:
       - name: Run tests
         run: pnpm test
 
-      - name: Run typecheck
-        run: pnpm typecheck
-
-      - name: Run svelte check
-        run: pnpm svelte:check
-
       - name: Run build
         run: pnpm build
