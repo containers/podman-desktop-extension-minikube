@@ -19,17 +19,15 @@
 import { Octokit } from '@octokit/rest';
 import type { CancellationToken, Logger } from '@podman-desktop/api';
 import * as extensionApi from '@podman-desktop/api';
-import { window } from '@podman-desktop/api';
 
+import { imageLocation, minikubeDescription, minikubeDisplayName } from './constants';
 import { createCluster } from './create-cluster';
-import { MinikubeDownload, MinikubeGithubReleaseArtifactMetadata } from './download';
+import { MinikubeDownload } from './download';
 import { ImageHandler } from './image-handler';
-import { MinikubeInstaller } from './minikube-installer';
-import { detectMinikube, getMinikubeHome, getMinikubePath, installBinaryToSystem } from './util';
+import { MinikubeCli } from './minikube-cli';
+import { getMinikubeHome, getMinikubePath } from './util';
 
 const API_MINIKUBE_INTERNAL_API_PORT = 8443;
-
-const MINIKUBE_INSTALL_COMMAND = 'minikube.install';
 
 const MINIKUBE_MOVE_IMAGE_COMMAND = 'minikube.image.move';
 
@@ -47,14 +45,11 @@ const registeredKubernetesConnections: {
 }[] = [];
 
 // the path of the tool
-let minikubeCli: string | undefined;
 let minikubeCliTool: extensionApi.CliTool | undefined;
 
-const minikubeCliName = 'minikube';
-const minikubeDisplayName = 'Minikube';
-const minikubeDescription = `
-  minikube quickly sets up a local Kubernetes cluster on macOS, Linux, and Windows. We proudly focus on helping application developers and new Kubernetes users.\n\nMore information: [minikube.sigs.k8s.io](https://minikube.sigs.k8s.io/)`;
-const imageLocation = './icon.png';
+let minikubeCli: string | undefined;
+
+let provider: extensionApi.Provider | undefined;
 
 const imageHandler = new ImageHandler();
 
@@ -198,7 +193,7 @@ export function refreshMinikubeClustersOnProviderConnectionUpdate(provider: exte
 async function createProvider(
   extensionContext: extensionApi.ExtensionContext,
   telemetryLogger: extensionApi.TelemetryLogger,
-): Promise<void> {
+): Promise<extensionApi.Provider> {
   const providerOptions: extensionApi.ProviderOptions = {
     name: minikubeDisplayName,
     id: 'minikube',
@@ -247,145 +242,40 @@ async function createProvider(
   extensionApi.provider.onDidUpdateProvider(async () => registerProvider(extensionContext, provider, telemetryLogger));
   // search for minikube clusters on boot
   await searchMinikubeClusters(provider);
+
+  return provider;
 }
 
 export async function activate(extensionContext: extensionApi.ExtensionContext): Promise<void> {
   const telemetryLogger = extensionApi.env.createTelemetryLogger();
-  const installer = new MinikubeInstaller(extensionContext.storagePath, telemetryLogger);
-  minikubeCli = await detectMinikube(extensionContext.storagePath, installer);
-
-  if (!minikubeCli) {
-    if (await installer.isAvailable()) {
-      const statusBarItem = extensionApi.window.createStatusBarItem();
-      statusBarItem.text = minikubeDisplayName;
-      statusBarItem.tooltip = 'Minikube not found on your system, click to download and install it';
-      statusBarItem.command = MINIKUBE_INSTALL_COMMAND;
-      statusBarItem.iconClass = 'fa fa-exclamation-triangle';
-      extensionContext.subscriptions.push(
-        extensionApi.commands.registerCommand(MINIKUBE_INSTALL_COMMAND, () =>
-          installer.performInstall().then(
-            async status => {
-              if (status) {
-                statusBarItem.dispose();
-                minikubeCli = await detectMinikube(extensionContext.storagePath, installer);
-                await createProvider(extensionContext, telemetryLogger);
-              }
-            },
-            (err: unknown) => window.showErrorMessage('Minikube installation failed ' + err),
-          ),
-        ),
-        statusBarItem,
-      );
-      statusBarItem.show();
-    }
-  } else {
-    await createProvider(extensionContext, telemetryLogger);
-  }
-
-  // Push the CLI tool as well (but it will do it postActivation so it does not block the activate() function)
-  // Post activation
-  setTimeout(() => {
-    postActivate(extensionContext).catch((error: unknown) => {
-      console.error('Error activating extension', error);
-    });
-  }, 0);
-}
-
-// Activate the CLI tool (check version, etc) and register the CLi so it does not block activation.
-async function postActivate(extensionContext: extensionApi.ExtensionContext): Promise<void> {
-  let binaryVersion = '';
-
-  // Retrieve the version of the binary by running exec with --short
-  try {
-    if (minikubeCli) {
-      const result = await extensionApi.process.exec(minikubeCli, ['version', '--short']);
-      binaryVersion = result.stdout.replace('v', '').trim();
-    }
-  } catch (e) {
-    console.error(`Error getting compose version: ${e}`);
-  }
-
-  // Register the CLI tool so it appears in the preferences page. We will detect which version is being ran by
-  // checking the local storage folder for the binary. If it exists, we will run `version` and parse the information.
-  minikubeCliTool = extensionApi.cli.createCliTool({
-    name: minikubeCliName,
-    displayName: minikubeDisplayName,
-    markdownDescription: minikubeDescription,
-    images: {
-      icon: imageLocation,
-    },
-    version: binaryVersion,
-    path: minikubeCli,
-  });
 
   // create the client to interact with minikube repository
   const octokit = new Octokit();
   const minikubeDownload = new MinikubeDownload(extensionContext, octokit);
 
-  let releaseToInstall: MinikubeGithubReleaseArtifactMetadata | undefined;
-  minikubeCliTool.registerInstaller({
-    selectVersion: async () => {
-      let lastReleasesMetadata = await minikubeDownload.grabLatestsReleasesMetadata();
+  const minikubeCLI = new MinikubeCli(minikubeDownload);
+  minikubeCLI.init();
+  extensionContext.subscriptions.push(minikubeCLI);
 
-      // if the user already has an installed version, we remove it from the list
-      if (binaryVersion) {
-        lastReleasesMetadata = lastReleasesMetadata.filter(release => release.tag.slice(1) !== binaryVersion);
-      }
+  minikubeCLI.onCliUpdate(info => {
+    if (info === undefined && provider !== undefined) {
+      provider.dispose();
+      return;
+    }
 
-      // Show the quickpick
-      const selectedRelease = await extensionApi.window.showQuickPick(lastReleasesMetadata, {
-        placeHolder: 'Select Kind version to download',
-      });
+    // update the path
+    minikubeCli = info?.path;
 
-      releaseToInstall = selectedRelease;
-      if (selectedRelease) {
-        return selectedRelease.tag.slice(1);
-      } else {
-        throw new Error('No version selected');
-      }
-    },
-    doInstall: async _logger => {
-      if(!releaseToInstall) throw new Error(`Cannot install minikube cli no release selected`);
-
-      await performInstall(minikubeDownload, releaseToInstall);
-
-      releaseToInstall = undefined;
-    },
-    doUninstall: async _logger => {
-      if (!binaryVersion) {
-        throw new Error(`Cannot uninstall minikube. No version detected.`);
-      }
-    },
+    if (info !== undefined && provider === undefined) {
+      createProvider(extensionContext, telemetryLogger)
+        .then(nProvider => {
+          provider = nProvider;
+        })
+        .catch((err: unknown) => {
+          console.error('Something went wrong while trying to create minikube provider', err);
+        });
+    }
   });
-
-  // check if there is a new version to be installed and register the updater
-  const lastReleaseMetadata = await minikubeDownload.getLatestVersionAsset();
-  const lastReleaseVersion = lastReleaseMetadata.tag.replace('v', '').trim();
-  if (lastReleaseVersion !== binaryVersion) {
-    const minikubeCliToolUpdaterDisposable = minikubeCliTool.registerUpdate({
-      version: lastReleaseVersion,
-      doUpdate: async (): Promise<void> => (performInstall(minikubeDownload, lastReleaseMetadata).then(() => {
-        minikubeCliToolUpdaterDisposable?.dispose();
-      })),
-    });
-  }
-}
-
-async function performInstall(minikubeDownload: MinikubeDownload, release: MinikubeGithubReleaseArtifactMetadata): Promise<void> {
-  // download the cli
-  const destFile = await minikubeDownload.download(release);
-  let path = destFile;
-  try {
-    // install system-wide
-    path = await installBinaryToSystem(destFile, 'minikube');
-  } catch (e: unknown) {
-    console.warn(`cannot install minikube system-wide: ${String(e)}`);
-  } finally {
-    minikubeCliTool?.updateVersion({
-      path,
-      version: release.tag.replace('v', '').trim(),
-    });
-  }
 }
 
 export function deactivate(): void {
