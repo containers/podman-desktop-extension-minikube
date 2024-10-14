@@ -24,17 +24,6 @@ import * as extensionApi from '@podman-desktop/api';
 
 import type { MinikubeInstaller } from './minikube-installer';
 
-export interface SpawnResult {
-  stdOut: string;
-  stdErr: string;
-  error: undefined | string;
-}
-
-export interface RunOptions {
-  env?: NodeJS.ProcessEnv;
-  logger?: extensionApi.Logger;
-}
-
 const macosExtraPath = '/usr/local/bin:/opt/homebrew/bin:/opt/local/bin:/opt/podman/bin';
 
 export function getMinikubePath(): string {
@@ -95,12 +84,21 @@ export async function detectMinikube(pathAddition: string, installer: MinikubeIn
   return undefined;
 }
 
+export function getBinarySystemPath(binaryName: string): string {
+  if (extensionApi.env.isWindows) {
+    return path.join(os.homedir(), 'AppData', 'Local', 'Microsoft', 'WindowsApps', `${binaryName}.exe`);
+  } else {
+    return path.join('/usr/local/bin', binaryName);
+  }
+}
+
 // Takes a binary path (e.g. /tmp/minikube) and installs it to the system. Renames it based on binaryName
 // supports Windows, Linux and macOS
 // If using Windows or Mac, we will use sudo-prompt in order to elevate the privileges
 // If using Linux, we'll use pkexec and polkit support to ask for privileges.
 // When running in a flatpak, we'll use flatpak-spawn to execute the command on the host
-export async function installBinaryToSystem(binaryPath: string, binaryName: string): Promise<void> {
+// @return the system-wide path where it is installed
+export async function installBinaryToSystem(binaryPath: string, binaryName: string): Promise<string> {
   const system = process.platform;
 
   // Before copying the file, make sure it's executable (chmod +x) for Linux and Mac
@@ -115,15 +113,13 @@ export async function installBinaryToSystem(binaryPath: string, binaryName: stri
 
   // Create the appropriate destination path (Windows uses AppData/Local, Linux and Mac use /usr/local/bin)
   // and the appropriate command to move the binary to the destination path
-  let destinationPath: string;
+  const destinationPath: string = getBinarySystemPath(binaryName);
   let command: string;
   let args: string[];
   if (system === 'win32') {
-    destinationPath = path.join(os.homedir(), 'AppData', 'Local', 'Microsoft', 'WindowsApps', `${binaryName}.exe`);
     command = 'copy';
     args = [`"${binaryPath}"`, `"${destinationPath}"`];
   } else {
-    destinationPath = path.join('/usr/local/bin', binaryName);
     command = 'cp';
     args = [binaryPath, destinationPath];
   }
@@ -139,8 +135,68 @@ export async function installBinaryToSystem(binaryPath: string, binaryName: stri
     // Use admin prileges / ask for password for copying to /usr/local/bin
     await extensionApi.process.exec(command, args, { isAdmin: true });
     console.log(`Successfully installed '${binaryName}' binary.`);
+    return destinationPath;
   } catch (error) {
     console.error(`Failed to install '${binaryName}' binary: ${error}`);
+    throw error;
+  }
+}
+
+/**
+ * Given an executable name will find where it is installed on the system
+ * @param executable
+ */
+export async function whereBinary(executable: string): Promise<string> {
+  // grab full path for Linux and mac
+  if (extensionApi.env.isLinux || extensionApi.env.isMac) {
+    try {
+      const { stdout: fullPath } = await extensionApi.process.exec('which', [executable]);
+      return fullPath;
+    } catch (err) {
+      console.warn('Error getting full path', err);
+    }
+  } else if (extensionApi.env.isWindows) {
+    // grab full path for Windows
+    try {
+      const { stdout: fullPath } = await extensionApi.process.exec('where.exe', [executable]);
+      // remove all line break/carriage return characters from full path
+      return fullPath.replace(/(\r\n|\n|\r)/gm, '');
+    } catch (err) {
+      console.warn('Error getting full path', err);
+    }
+  }
+
+  throw new Error(`binary ${executable} not found.`);
+}
+
+export async function deleteFile(filePath: string): Promise<void> {
+  if (filePath && fs.existsSync(filePath)) {
+    try {
+      await fs.promises.unlink(filePath);
+    } catch (error: unknown) {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'code' in error &&
+        (error.code === 'EACCES' || error.code === 'EPERM')
+      ) {
+        await deleteFileAsAdmin(filePath);
+      } else {
+        throw error;
+      }
+    }
+  }
+}
+
+export async function deleteFileAsAdmin(filePath: string): Promise<void> {
+  const args: string[] = [filePath];
+  const command = extensionApi.env.isWindows ? 'del' : 'rm';
+
+  try {
+    // Use admin prileges
+    await extensionApi.process.exec(command, args, { isAdmin: true });
+  } catch (error) {
+    console.error(`Failed to uninstall '${filePath}': ${error}`);
     throw error;
   }
 }
