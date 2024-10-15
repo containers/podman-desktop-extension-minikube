@@ -28,6 +28,7 @@ import type {
   Progress,
   Provider,
   StatusBarItem,
+  TelemetryLogger,
 } from '@podman-desktop/api';
 import { cli, commands, containerEngine, process as processCore, provider, window } from '@podman-desktop/api';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
@@ -96,6 +97,12 @@ const minikubeDownload: MinikubeDownload = {
   getLatestVersionAsset: vi.fn(),
   download: vi.fn(),
 } as unknown as MinikubeDownload;
+
+const extensionContext: ExtensionContext = {
+  subscriptions: [],
+} as unknown as ExtensionContext;
+
+const telemetryLogger: TelemetryLogger = {} as unknown as TelemetryLogger;
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -186,7 +193,7 @@ test('verify that the minikube cli is used to start/stop the minikube container'
 
 describe('registerCommandInstall', () => {
   test('should register the commands in the api', async () => {
-    registerCommandInstall(minikubeDownload, {} as unknown as StatusBarItem);
+    registerCommandInstall(extensionContext, telemetryLogger, minikubeDownload, {} as unknown as StatusBarItem);
 
     expect(commands.registerCommand).toHaveBeenCalledWith('minikube.install', expect.any(Function));
   });
@@ -199,7 +206,7 @@ describe('registerCommandInstall', () => {
         dispose: vi.fn(),
       };
     });
-    registerCommandInstall(minikubeDownload, {} as unknown as StatusBarItem);
+    registerCommandInstall(extensionContext, telemetryLogger, minikubeDownload, {} as unknown as StatusBarItem);
     expect(listener).toBeDefined();
     vi.mocked(window.showInformationMessage).mockResolvedValue('Cancel');
 
@@ -220,7 +227,7 @@ describe('registerCommandInstall', () => {
         dispose: vi.fn(),
       };
     });
-    registerCommandInstall(minikubeDownload, {} as unknown as StatusBarItem);
+    registerCommandInstall(extensionContext, telemetryLogger, minikubeDownload, {} as unknown as StatusBarItem);
     expect(listener).toBeDefined();
     vi.mocked(window.showInformationMessage).mockResolvedValue('Yes');
 
@@ -243,7 +250,7 @@ describe('registerCommandInstall', () => {
       };
     });
     const statusBarItemDipose = vi.fn();
-    registerCommandInstall(minikubeDownload, {
+    registerCommandInstall(extensionContext, telemetryLogger, minikubeDownload, {
       dispose: statusBarItemDipose,
     } as unknown as StatusBarItem);
     expect(cmdListener).toBeDefined();
@@ -280,7 +287,7 @@ describe('registerCommandInstall', () => {
       };
     });
     const statusBarItemDipose = vi.fn();
-    registerCommandInstall(minikubeDownload, {
+    registerCommandInstall(extensionContext, telemetryLogger, minikubeDownload, {
       dispose: statusBarItemDipose,
     } as unknown as StatusBarItem);
     expect(cmdListener).toBeDefined();
@@ -371,6 +378,33 @@ describe('registerCommandInstall', () => {
       version: '1.56.0',
       path: '/extension-folder/minikube',
     });
+  });
+
+  test('command installation complete should register provider', async () => {
+    let cmdListener: (() => Promise<void>) | undefined;
+    vi.mocked(commands.registerCommand).mockImplementation((_command, mListener) => {
+      cmdListener = mListener;
+      return {
+        dispose: vi.fn(),
+      };
+    });
+
+    vi.mocked(window.showInformationMessage).mockResolvedValueOnce('Yes');
+    vi.mocked(window.withProgress).mockImplementation((_options, task) => {
+      return task({ report: vi.fn() }, {} as unknown as CancellationToken);
+    });
+
+    registerCommandInstall(extensionContext, telemetryLogger, minikubeDownload, {
+      dispose: vi.fn(),
+    } as unknown as StatusBarItem);
+    expect(cmdListener).toBeDefined();
+    await cmdListener?.();
+
+    expect(provider.createProvider).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'minikube',
+      }),
+    );
   });
 });
 

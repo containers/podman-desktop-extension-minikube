@@ -248,6 +248,8 @@ async function createProvider(
 }
 
 export function registerCommandInstall(
+  extensionContext: extensionApi.ExtensionContext,
+  telemetryLogger: extensionApi.TelemetryLogger,
   minikubeDownload: MinikubeDownload,
   statusBarItem: extensionApi.StatusBarItem,
 ): extensionApi.Disposable {
@@ -291,6 +293,8 @@ export function registerCommandInstall(
           });
           minikubeCliToolUpdaterDisposable?.dispose();
         }
+
+        return createProvider(extensionContext, telemetryLogger);
       },
     );
   });
@@ -310,7 +314,10 @@ export async function activate(extensionContext: extensionApi.ExtensionContext):
     statusBarItem.tooltip = 'Minikube not found on your system, click to download and install it';
     statusBarItem.command = MINIKUBE_INSTALL_COMMAND;
     statusBarItem.iconClass = 'fa fa-exclamation-triangle';
-    extensionContext.subscriptions.push(registerCommandInstall(minikubeDownload, statusBarItem), statusBarItem);
+    extensionContext.subscriptions.push(
+      registerCommandInstall(extensionContext, telemetryLogger, minikubeDownload, statusBarItem),
+      statusBarItem,
+    );
     statusBarItem.show();
   } else {
     await createProvider(extensionContext, telemetryLogger);
