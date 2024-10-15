@@ -24,7 +24,7 @@ import * as path from 'node:path';
 import type { Octokit } from '@octokit/rest';
 import type * as extensionApi from '@podman-desktop/api';
 
-export interface MinikubeGithubReleaseArtifactMetadata extends extensionApi.QuickPickItem {
+export interface MinikubeGithubReleaseArtifactMetadata {
   tag: string;
   id: number;
 }
