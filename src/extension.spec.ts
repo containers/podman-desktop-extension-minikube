@@ -27,16 +27,10 @@ import type {
   LifecycleContext,
   Progress,
   Provider,
-  StatusBarItem} from '@podman-desktop/api';
-import {
-  cli,
-  commands,
-  containerEngine,
-  process as processCore,
-  provider,
-  window,
+  StatusBarItem,
 } from '@podman-desktop/api';
-import { afterEach, beforeEach, describe,expect, test, vi } from 'vitest';
+import { cli, commands, containerEngine, process as processCore, provider, window } from '@podman-desktop/api';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import type { MinikubeGithubReleaseArtifactMetadata } from './download';
 import { MinikubeDownload } from './download';
