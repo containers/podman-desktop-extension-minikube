@@ -18,66 +18,133 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import * as podmanDesktopApi from '@podman-desktop/api';
-import { beforeEach, expect, test, vi } from 'vitest';
+import type {
+  CancellationToken,
+  CliTool,
+  ContainerInfo,
+  ExtensionContext,
+  KubernetesProviderConnection,
+  LifecycleContext,
+  Progress,
+  Provider,
+  StatusBarItem} from '@podman-desktop/api';
+import {
+  cli,
+  commands,
+  containerEngine,
+  process as processCore,
+  provider,
+  window,
+} from '@podman-desktop/api';
+import { afterEach, beforeEach, describe,expect, test, vi } from 'vitest';
 
-import { refreshMinikubeClustersOnProviderConnectionUpdate } from './extension';
+import type { MinikubeGithubReleaseArtifactMetadata } from './download';
+import { MinikubeDownload } from './download';
+import {
+  activate,
+  deactivate,
+  refreshMinikubeClustersOnProviderConnectionUpdate,
+  registerCommandInstall,
+} from './extension';
+import { findMinikube } from './util';
 
-vi.mock('@podman-desktop/api', async () => {
-  return {
-    provider: {
-      onDidUpdateContainerConnection: vi.fn(),
-    },
+vi.mock('./util', () => ({
+  findMinikube: vi.fn(),
+  getMinikubeHome: vi.fn(),
+  getMinikubePath: vi.fn(),
+  installBinaryToSystem: vi.fn(),
+}));
 
-    containerEngine: {
-      listContainers: vi.fn(),
-    },
-    configuration: {
-      getConfiguration: vi.fn(),
-    },
+vi.mock('./download', () => ({
+  MinikubeDownload: vi.fn(),
+}));
 
-    process: {
-      exec: vi.fn(),
-      env: {},
-    },
+vi.mock('@podman-desktop/api', async () => ({
+  provider: {
+    onDidUpdateContainerConnection: vi.fn(),
+    onDidRegisterContainerConnection: vi.fn(),
+    onDidUnregisterContainerConnection: vi.fn(),
+    onDidUpdateProvider: vi.fn(),
+    createProvider: vi.fn(),
+  },
+  commands: {
+    registerCommand: vi.fn(),
+  },
+  containerEngine: {
+    listContainers: vi.fn(),
+    onEvent: vi.fn(),
+  },
+  configuration: {
+    getConfiguration: vi.fn(),
+  },
+  process: {
+    exec: vi.fn(),
+    env: {},
+  },
+  window: {
+    createStatusBarItem: vi.fn(),
+    showInformationMessage: vi.fn(),
+    withProgress: vi.fn(),
+  },
+  env: {
+    isMac: false,
+    createTelemetryLogger: vi.fn(),
+  },
+  cli: {
+    createCliTool: vi.fn(),
+  },
+  ProgressLocation: {
+    TASK_WIDGET: 2,
+  },
+}));
 
-    env: {
-      isMac: false,
-    },
-  };
-});
+const minikubeDownload: MinikubeDownload = {
+  getLatestVersionAsset: vi.fn(),
+  download: vi.fn(),
+} as unknown as MinikubeDownload;
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.resetAllMocks();
+  vi.mocked(window.createStatusBarItem).mockReturnValue({
+    alignment: 'LEFT',
+    enabled: false,
+    priority: 0,
+    dispose: vi.fn(),
+    hide: vi.fn(),
+    show: vi.fn(),
+  });
+
+  vi.mocked(provider.createProvider).mockReturnValue({
+    setKubernetesProviderConnectionFactory: vi.fn(),
+    registerKubernetesProviderConnection: () => ({
+      dispose: vi.fn(),
+    }),
+  } as unknown as Provider);
+
+  vi.mocked(MinikubeDownload).mockReturnValue(minikubeDownload);
+
+  vi.mocked(containerEngine.listContainers).mockResolvedValue([]);
+});
+
+afterEach(() => {
+  deactivate();
 });
 
 test('check we received notifications ', async () => {
-  const onDidUpdateContainerConnectionMock = vi.fn();
-  (podmanDesktopApi.provider as any).onDidUpdateContainerConnection = onDidUpdateContainerConnectionMock;
-
-  const listContainersMock = vi.fn();
-  (podmanDesktopApi.containerEngine as any).listContainers = listContainersMock;
-  listContainersMock.mockResolvedValue([]);
-
   let callbackCalled = false;
-  onDidUpdateContainerConnectionMock.mockImplementation((callback: any) => {
+  vi.mocked(provider.onDidUpdateContainerConnection).mockImplementation((callback: any) => {
     callback();
     callbackCalled = true;
   });
 
-  const fakeProvider = {} as unknown as podmanDesktopApi.Provider;
+  const fakeProvider = {} as unknown as Provider;
   refreshMinikubeClustersOnProviderConnectionUpdate(fakeProvider);
   expect(callbackCalled).toBeTruthy();
-  expect(listContainersMock).toBeCalledTimes(1);
+  expect(containerEngine.listContainers).toBeCalledTimes(1);
 });
 
 test('verify that the minikube cli is used to start/stop the minikube container', async () => {
-  const onDidUpdateContainerConnectionMock = vi.fn();
-  (podmanDesktopApi.provider as any).onDidUpdateContainerConnection = onDidUpdateContainerConnectionMock;
-
-  const listContainersMock = vi.fn();
-  (podmanDesktopApi.containerEngine as any).listContainers = listContainersMock;
-  listContainersMock.mockResolvedValue([
+  vi.mocked(containerEngine.listContainers).mockResolvedValue([
     {
       Labels: {
         'name.minikube.sigs.k8s.io': 'minikube',
@@ -87,35 +154,252 @@ test('verify that the minikube cli is used to start/stop the minikube container'
       engineType: 'podman',
       engineId: 'engine',
       Id: '1',
-    } as unknown as podmanDesktopApi.ContainerInfo,
+    } as unknown as ContainerInfo,
   ]);
 
-  onDidUpdateContainerConnectionMock.mockImplementation((callback: any) => {
+  vi.mocked(provider.onDidUpdateContainerConnection).mockImplementation((callback: any) => {
     callback();
   });
 
-  const connections: podmanDesktopApi.KubernetesProviderConnection[] = [];
+  const connections: KubernetesProviderConnection[] = [];
   const fakeProvider = {
-    registerKubernetesProviderConnection: vi
-      .fn()
-      .mockImplementation((connection: podmanDesktopApi.KubernetesProviderConnection) => {
-        connections.push(connection);
-      }),
-  } as unknown as podmanDesktopApi.Provider;
-  const mockExec = vi.spyOn(podmanDesktopApi.process, 'exec');
+    registerKubernetesProviderConnection: vi.fn().mockImplementation((connection: KubernetesProviderConnection) => {
+      connections.push(connection);
+    }),
+  } as unknown as Provider;
   refreshMinikubeClustersOnProviderConnectionUpdate(fakeProvider);
 
   await vi.waitUntil(() => connections.length > 0, { timeout: 5000 });
 
-  await connections[0].lifecycle.start?.({} as unknown as podmanDesktopApi.LifecycleContext);
+  await connections[0].lifecycle.start?.({} as unknown as LifecycleContext);
 
-  expect(mockExec).toBeCalledWith(undefined, ['start', '--profile', 'minikube'], expect.any(Object));
+  expect(processCore.exec).toBeCalledWith(undefined, ['start', '--profile', 'minikube'], expect.any(Object));
 
-  await connections[0].lifecycle.stop?.({} as unknown as podmanDesktopApi.LifecycleContext);
+  await connections[0].lifecycle.stop?.({} as unknown as LifecycleContext);
 
-  expect(mockExec).toBeCalledWith(
+  expect(processCore.exec).toBeCalledWith(
     undefined,
     ['stop', '--profile', 'minikube', '--keep-context-active'],
     expect.any(Object),
   );
+});
+
+describe('registerCommandInstall', () => {
+  test('should register the commands in the api', async () => {
+    registerCommandInstall(minikubeDownload, {} as unknown as StatusBarItem);
+
+    expect(commands.registerCommand).toHaveBeenCalledWith('minikube.install', expect.any(Function));
+  });
+
+  test('command execution should ask user confirmation', async () => {
+    let listener: (() => Promise<void>) | undefined;
+    vi.mocked(commands.registerCommand).mockImplementation((_command, mListener) => {
+      listener = mListener;
+      return {
+        dispose: vi.fn(),
+      };
+    });
+    registerCommandInstall(minikubeDownload, {} as unknown as StatusBarItem);
+    expect(listener).toBeDefined();
+    vi.mocked(window.showInformationMessage).mockResolvedValue('Cancel');
+
+    await listener?.();
+
+    expect(window.showInformationMessage).toHaveBeenCalledWith(
+      'The minikube binary is required for local Kubernetes development, would you like to download it?',
+      'Yes',
+      'Cancel',
+    );
+  });
+
+  test('command execution should create task', async () => {
+    let listener: (() => Promise<void>) | undefined;
+    vi.mocked(commands.registerCommand).mockImplementation((_command, mListener) => {
+      listener = mListener;
+      return {
+        dispose: vi.fn(),
+      };
+    });
+    registerCommandInstall(minikubeDownload, {} as unknown as StatusBarItem);
+    expect(listener).toBeDefined();
+    vi.mocked(window.showInformationMessage).mockResolvedValue('Yes');
+
+    await listener?.();
+
+    expect(window.withProgress).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Installing minikube',
+      }),
+      expect.any(Function),
+    );
+  });
+
+  test('command task should report progress', async () => {
+    vi.mocked(minikubeDownload.getLatestVersionAsset).mockResolvedValue({
+      tag: 'v1.56.0',
+    } as unknown as MinikubeGithubReleaseArtifactMetadata);
+
+    let cmdListener: (() => Promise<void>) | undefined;
+    vi.mocked(commands.registerCommand).mockImplementation((_command, mListener) => {
+      cmdListener = mListener;
+      return {
+        dispose: vi.fn(),
+      };
+    });
+    const statusBarItemDipose = vi.fn();
+    registerCommandInstall(minikubeDownload, {
+      dispose: statusBarItemDipose,
+    } as unknown as StatusBarItem);
+    expect(cmdListener).toBeDefined();
+    // only confirm download in extension folder not system-wide install
+    vi.mocked(window.showInformationMessage).mockResolvedValue('Yes');
+
+    const progressMock: Progress<{ message?: string; increment?: number }> = {
+      report: vi.fn(),
+    };
+    vi.mocked(window.withProgress).mockImplementation((_options, task) => {
+      return task(progressMock, {} as unknown as CancellationToken);
+    });
+
+    await cmdListener?.();
+
+    await vi.waitFor(() => {
+      expect(minikubeDownload.getLatestVersionAsset).toHaveBeenCalled();
+      expect(minikubeDownload.download).toHaveBeenCalled();
+    });
+
+    expect(progressMock.report).toHaveBeenCalledWith({ message: `Downloading minikube 1.56.0` });
+    // the status bar should be disposed on success
+    expect(statusBarItemDipose).toHaveBeenCalled();
+  });
+
+  test('status bar item should not be disposed if download fails', async () => {
+    vi.mocked(minikubeDownload.getLatestVersionAsset).mockResolvedValue({
+      tag: 'v1.56.0',
+    } as unknown as MinikubeGithubReleaseArtifactMetadata);
+    vi.mocked(minikubeDownload.download).mockRejectedValue(new Error('random download error'));
+
+    let cmdListener: (() => Promise<void>) | undefined;
+    vi.mocked(commands.registerCommand).mockImplementation((_command, mListener) => {
+      cmdListener = mListener;
+      return {
+        dispose: vi.fn(),
+      };
+    });
+    const statusBarItemDipose = vi.fn();
+    registerCommandInstall(minikubeDownload, {
+      dispose: statusBarItemDipose,
+    } as unknown as StatusBarItem);
+    expect(cmdListener).toBeDefined();
+    // only confirm download in extension folder not system-wide install
+    vi.mocked(window.showInformationMessage).mockResolvedValue('Yes');
+
+    vi.mocked(window.withProgress).mockImplementation((_options, task) => {
+      return task({ report: vi.fn() }, {} as unknown as CancellationToken);
+    });
+
+    await expect(async () => {
+      await cmdListener?.();
+    }).rejects.toThrowError('random download error');
+
+    // the status bar should be disposed on success
+    expect(statusBarItemDipose).not.toHaveBeenCalled();
+  });
+});
+
+describe('activate - status bar item', () => {
+  test('activate should register status bar when minikube not available', async () => {
+    vi.mocked(findMinikube).mockResolvedValue(undefined);
+
+    await activate({ subscriptions: [] } as unknown as ExtensionContext);
+
+    expect(findMinikube).toHaveBeenCalled();
+    expect(window.createStatusBarItem).toHaveBeenCalled();
+  });
+
+  test('activate should register a command bar when minikube not available', async () => {
+    vi.mocked(findMinikube).mockResolvedValue(undefined);
+
+    await activate({ subscriptions: [] } as unknown as ExtensionContext);
+
+    expect(commands.registerCommand).toHaveBeenCalledWith('minikube.install', expect.any(Function));
+  });
+
+  test('activate should not register a status bar bar when minikube is available', async () => {
+    vi.mocked(findMinikube).mockResolvedValue('/dummy/path/minikube');
+
+    await activate({ subscriptions: [] } as unknown as ExtensionContext);
+
+    expect(findMinikube).toHaveBeenCalled();
+    expect(window.createStatusBarItem).not.toHaveBeenCalled();
+  });
+});
+
+describe('activate - cli tool', () => {
+  test('should register cli tool without version when minikube not available', async () => {
+    vi.mocked(findMinikube).mockResolvedValue(undefined);
+
+    await activate({ subscriptions: [] } as unknown as ExtensionContext);
+
+    await vi.waitFor(() => {
+      expect(cli.createCliTool).toHaveBeenCalledWith({
+        name: 'minikube',
+        displayName: 'Minikube',
+        markdownDescription: expect.any(String),
+        images: {
+          icon: expect.any(String),
+        },
+        version: undefined,
+        path: undefined,
+      });
+    });
+  });
+
+  test('should register cli tool with version when minikube is available', async () => {
+    vi.mocked(findMinikube).mockResolvedValue('/hello/minikube');
+    vi.mocked(processCore.exec).mockResolvedValue({
+      stdout: 'v1.55.99',
+      stderr: '',
+      command: '',
+    });
+
+    await activate({ subscriptions: [] } as unknown as ExtensionContext);
+
+    await vi.waitFor(() => {
+      expect(processCore.exec).toHaveBeenCalledWith('/hello/minikube', ['version', '--short']);
+      expect(cli.createCliTool).toHaveBeenCalledWith(
+        expect.objectContaining({
+          version: '1.55.99',
+          path: '/hello/minikube',
+        }),
+      );
+    });
+  });
+
+  test('should register an update to the cli tool when new version available', async () => {
+    vi.mocked(findMinikube).mockResolvedValue('/hello/minikube');
+    vi.mocked(processCore.exec).mockResolvedValue({
+      stdout: 'v1.55.99',
+      stderr: '',
+      command: '',
+    });
+    vi.mocked(minikubeDownload.getLatestVersionAsset).mockResolvedValue({
+      tag: 'v1.56.0',
+    } as unknown as MinikubeGithubReleaseArtifactMetadata);
+
+    const registerUpdateMock = vi.fn();
+    vi.mocked(cli.createCliTool).mockReturnValue({
+      registerUpdate: registerUpdateMock,
+      dispose: vi.fn(),
+    } as unknown as CliTool);
+
+    await activate({ subscriptions: [] } as unknown as ExtensionContext);
+
+    await vi.waitFor(() => {
+      expect(registerUpdateMock).toHaveBeenCalledWith({
+        version: '1.56.0',
+        doUpdate: expect.any(Function),
+      });
+    });
+  });
 });

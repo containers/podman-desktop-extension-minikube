@@ -247,21 +247,53 @@ async function createProvider(
   await searchMinikubeClusters(provider);
 }
 
-function registerCommandInstall(minikubeDownload: MinikubeDownload): extensionApi.Disposable {
+export function registerCommandInstall(
+  minikubeDownload: MinikubeDownload,
+  statusBarItem: extensionApi.StatusBarItem,
+): extensionApi.Disposable {
   return extensionApi.commands.registerCommand(MINIKUBE_INSTALL_COMMAND, async () => {
-    try {
-      const lastReleaseMetadata = await minikubeDownload.getLatestVersionAsset();
-      const lastReleaseVersion = lastReleaseMetadata.tag.replace('v', '').trim();
+    const dialogResult = await extensionApi.window.showInformationMessage(
+      'The minikube binary is required for local Kubernetes development, would you like to download it?',
+      'Yes',
+      'Cancel',
+    );
 
-      const destFile = await minikubeDownload.download(lastReleaseMetadata);
-      await installBinaryToSystem(destFile, 'minikube');
-      minikubeCliTool?.updateVersion({
-        version: lastReleaseVersion,
-      });
-      minikubeCliToolUpdaterDisposable?.dispose();
-    } catch (err: unknown) {
-      console.error('Something went wrong while trying to install minikube', err);
-    }
+    if (dialogResult !== 'Yes') return;
+
+    return extensionApi.window.withProgress(
+      { location: extensionApi.ProgressLocation.TASK_WIDGET, title: 'Installing minikube' },
+      async progress => {
+        const lastReleaseMetadata = await minikubeDownload.getLatestVersionAsset();
+        const lastReleaseVersion = lastReleaseMetadata.tag.replace('v', '').trim();
+
+        progress.report({ message: `Downloading minikube ${lastReleaseVersion}` });
+        const destFile = await minikubeDownload.download(lastReleaseMetadata);
+        statusBarItem.dispose();
+
+        // ask the user if we should install system-wide
+        const result = await extensionApi.window.showInformationMessage(
+          `minikube binary has been succesfully downloaded to ${destFile}.\n\nWould you like to install it system-wide for accessibility on the command line? This will require administrative privileges.`,
+          'Yes',
+          'Cancel',
+        );
+        if (result !== 'Yes') {
+          minikubeCliTool?.updateVersion({
+            version: lastReleaseVersion,
+            path: destFile,
+          });
+          minikubeCliToolUpdaterDisposable?.dispose();
+          return;
+        }
+
+        progress.report({ message: 'Installing minikube system-wide' });
+        const systemPath = await installBinaryToSystem(destFile, 'minikube');
+        minikubeCliTool?.updateVersion({
+          version: lastReleaseVersion,
+          path: systemPath,
+        });
+        minikubeCliToolUpdaterDisposable?.dispose();
+      },
+    );
   });
 }
 
@@ -279,10 +311,7 @@ export async function activate(extensionContext: extensionApi.ExtensionContext):
     statusBarItem.tooltip = 'Minikube not found on your system, click to download and install it';
     statusBarItem.command = MINIKUBE_INSTALL_COMMAND;
     statusBarItem.iconClass = 'fa fa-exclamation-triangle';
-    extensionContext.subscriptions.push(
-      registerCommandInstall(minikubeDownload),
-      statusBarItem,
-    );
+    extensionContext.subscriptions.push(registerCommandInstall(minikubeDownload, statusBarItem), statusBarItem);
     statusBarItem.show();
   } else {
     await createProvider(extensionContext, telemetryLogger);
@@ -291,15 +320,15 @@ export async function activate(extensionContext: extensionApi.ExtensionContext):
   // Push the CLI tool as well (but it will do it postActivation so it does not block the activate() function)
   // Post activation
   setTimeout(() => {
-    postActivate(extensionContext, minikubeDownload).catch((error: unknown) => {
+    postActivate(minikubeDownload).catch((error: unknown) => {
       console.error('Error activating extension', error);
     });
   }, 0);
 }
 
 // Activate the CLI tool (check version, etc) and register the CLi so it does not block activation.
-async function postActivate(extensionContext: extensionApi.ExtensionContext, minikubeDownload: MinikubeDownload): Promise<void> {
-  let binaryVersion = '';
+async function postActivate(minikubeDownload: MinikubeDownload): Promise<void> {
+  let binaryVersion: string | undefined = undefined;
 
   // Retrieve the version of the binary by running exec with --short
   try {
@@ -331,7 +360,7 @@ async function postActivate(extensionContext: extensionApi.ExtensionContext, min
     minikubeCliToolUpdaterDisposable = minikubeCliTool.registerUpdate({
       version: lastReleaseVersion,
       doUpdate: async () => {
-        // download, install system wide and update cli version
+        // download, install system-wide and update cli version
         try {
           const destFile = await minikubeDownload.download(lastReleaseMetadata);
           await installBinaryToSystem(destFile, 'minikube');
@@ -350,4 +379,6 @@ async function postActivate(extensionContext: extensionApi.ExtensionContext, min
 export function deactivate(): void {
   minikubeCliToolUpdaterDisposable?.dispose();
   minikubeCliTool?.dispose();
+  // cleaning
+  registeredKubernetesConnections.splice(0);
 }

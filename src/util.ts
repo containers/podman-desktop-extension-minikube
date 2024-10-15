@@ -22,7 +22,7 @@ import * as path from 'node:path';
 
 import * as extensionApi from '@podman-desktop/api';
 
-import { MinikubeDownload } from './download';
+import type { MinikubeDownload } from './download';
 
 const macosExtraPath = '/usr/local/bin:/opt/homebrew/bin:/opt/local/bin:/opt/podman/bin';
 
@@ -52,7 +52,7 @@ export function getMinikubeHome(): string | undefined {
 }
 
 // search if minikube is available in the path
-export async function findMinikube(downloader: MinikubeDownload): Promise<string |undefined> {
+export async function findMinikube(downloader: MinikubeDownload): Promise<string | undefined> {
   try {
     return await whereBinary('minikube');
   } catch (err: unknown) {
@@ -60,7 +60,7 @@ export async function findMinikube(downloader: MinikubeDownload): Promise<string
   }
 
   const extensionPath = downloader.getMinikubeExtensionPath();
-  if(fs.existsSync(extensionPath)) {
+  if (fs.existsSync(extensionPath)) {
     return extensionPath;
   }
 }
