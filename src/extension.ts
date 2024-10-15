@@ -1,5 +1,5 @@
 /**********************************************************************
- * Copyright (C) 2023 Red Hat, Inc.
+ * Copyright (C) 2023-2024 Red Hat, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,13 +19,11 @@
 import { Octokit } from '@octokit/rest';
 import type { CancellationToken, Logger } from '@podman-desktop/api';
 import * as extensionApi from '@podman-desktop/api';
-import { window } from '@podman-desktop/api';
 
 import { createCluster } from './create-cluster';
 import { MinikubeDownload } from './download';
 import { ImageHandler } from './image-handler';
-import { MinikubeInstaller } from './minikube-installer';
-import { detectMinikube, getMinikubeHome, getMinikubePath, installBinaryToSystem } from './util';
+import { findMinikube, getMinikubeHome, getMinikubePath, installBinaryToSystem } from './util';
 
 const API_MINIKUBE_INTERNAL_API_PORT = 8443;
 
@@ -48,6 +46,7 @@ const registeredKubernetesConnections: {
 
 let minikubeCli: string | undefined;
 let minikubeCliTool: extensionApi.CliTool | undefined;
+let minikubeCliToolUpdaterDisposable: extensionApi.Disposable | undefined;
 
 const minikubeCliName = 'minikube';
 const minikubeDisplayName = 'Minikube';
@@ -248,35 +247,43 @@ async function createProvider(
   await searchMinikubeClusters(provider);
 }
 
+function registerCommandInstall(minikubeDownload: MinikubeDownload): extensionApi.Disposable {
+  return extensionApi.commands.registerCommand(MINIKUBE_INSTALL_COMMAND, async () => {
+    try {
+      const lastReleaseMetadata = await minikubeDownload.getLatestVersionAsset();
+      const lastReleaseVersion = lastReleaseMetadata.tag.replace('v', '').trim();
+
+      const destFile = await minikubeDownload.download(lastReleaseMetadata);
+      await installBinaryToSystem(destFile, 'minikube');
+      minikubeCliTool?.updateVersion({
+        version: lastReleaseVersion,
+      });
+      minikubeCliToolUpdaterDisposable?.dispose();
+    } catch (err: unknown) {
+      console.error('Something went wrong while trying to install minikube', err);
+    }
+  });
+}
+
 export async function activate(extensionContext: extensionApi.ExtensionContext): Promise<void> {
   const telemetryLogger = extensionApi.env.createTelemetryLogger();
-  const installer = new MinikubeInstaller(extensionContext.storagePath, telemetryLogger);
-  minikubeCli = await detectMinikube(extensionContext.storagePath, installer);
+
+  const octokit = new Octokit();
+  const minikubeDownload = new MinikubeDownload(extensionContext, octokit);
+
+  minikubeCli = await findMinikube(minikubeDownload);
 
   if (!minikubeCli) {
-    if (await installer.isAvailable()) {
-      const statusBarItem = extensionApi.window.createStatusBarItem();
-      statusBarItem.text = minikubeDisplayName;
-      statusBarItem.tooltip = 'Minikube not found on your system, click to download and install it';
-      statusBarItem.command = MINIKUBE_INSTALL_COMMAND;
-      statusBarItem.iconClass = 'fa fa-exclamation-triangle';
-      extensionContext.subscriptions.push(
-        extensionApi.commands.registerCommand(MINIKUBE_INSTALL_COMMAND, () =>
-          installer.performInstall().then(
-            async status => {
-              if (status) {
-                statusBarItem.dispose();
-                minikubeCli = await detectMinikube(extensionContext.storagePath, installer);
-                await createProvider(extensionContext, telemetryLogger);
-              }
-            },
-            (err: unknown) => window.showErrorMessage('Minikube installation failed ' + err),
-          ),
-        ),
-        statusBarItem,
-      );
-      statusBarItem.show();
-    }
+    const statusBarItem = extensionApi.window.createStatusBarItem();
+    statusBarItem.text = minikubeDisplayName;
+    statusBarItem.tooltip = 'Minikube not found on your system, click to download and install it';
+    statusBarItem.command = MINIKUBE_INSTALL_COMMAND;
+    statusBarItem.iconClass = 'fa fa-exclamation-triangle';
+    extensionContext.subscriptions.push(
+      registerCommandInstall(minikubeDownload),
+      statusBarItem,
+    );
+    statusBarItem.show();
   } else {
     await createProvider(extensionContext, telemetryLogger);
   }
@@ -284,14 +291,14 @@ export async function activate(extensionContext: extensionApi.ExtensionContext):
   // Push the CLI tool as well (but it will do it postActivation so it does not block the activate() function)
   // Post activation
   setTimeout(() => {
-    postActivate(extensionContext).catch((error: unknown) => {
+    postActivate(extensionContext, minikubeDownload).catch((error: unknown) => {
       console.error('Error activating extension', error);
     });
   }, 0);
 }
 
 // Activate the CLI tool (check version, etc) and register the CLi so it does not block activation.
-async function postActivate(extensionContext: extensionApi.ExtensionContext): Promise<void> {
+async function postActivate(extensionContext: extensionApi.ExtensionContext, minikubeDownload: MinikubeDownload): Promise<void> {
   let binaryVersion = '';
 
   // Retrieve the version of the binary by running exec with --short
@@ -317,14 +324,11 @@ async function postActivate(extensionContext: extensionApi.ExtensionContext): Pr
     path: minikubeCli,
   });
 
-  const octokit = new Octokit();
-  const minikubeDownload = new MinikubeDownload(extensionContext, octokit);
-
   // check if there is a new version to be installed and register the updater
   const lastReleaseMetadata = await minikubeDownload.getLatestVersionAsset();
   const lastReleaseVersion = lastReleaseMetadata.tag.replace('v', '').trim();
   if (lastReleaseVersion !== binaryVersion) {
-    const minikubeCliToolUpdaterDisposable = minikubeCliTool.registerUpdate({
+    minikubeCliToolUpdaterDisposable = minikubeCliTool.registerUpdate({
       version: lastReleaseVersion,
       doUpdate: async () => {
         // download, install system wide and update cli version
@@ -344,5 +348,6 @@ async function postActivate(extensionContext: extensionApi.ExtensionContext): Pr
 }
 
 export function deactivate(): void {
+  minikubeCliToolUpdaterDisposable?.dispose();
   minikubeCliTool?.dispose();
 }

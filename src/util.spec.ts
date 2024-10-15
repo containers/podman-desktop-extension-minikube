@@ -24,11 +24,9 @@ import * as path from 'node:path';
 import * as extensionApi from '@podman-desktop/api';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import type { MinikubeInstaller } from './minikube-installer';
 import {
   deleteFile,
   deleteFileAsAdmin,
-  detectMinikube,
   getMinikubeHome,
   getMinikubePath,
   installBinaryToSystem,
@@ -137,29 +135,6 @@ describe('getMinikubeHome', () => {
     expect(computedHome).not.toEqual(existingEnvHome);
     expect(computedHome).toEqual(existingConfigHome);
   });
-});
-
-test('detectMinikube', async () => {
-  const fakeMinikubeInstaller = {
-    getAssetInfo: vi.fn(),
-  } as unknown as MinikubeInstaller;
-
-  const execMock = vi.spyOn(extensionApi.process, 'exec').mockResolvedValue({
-    command: '',
-    stderr: '',
-    stdout: '',
-  });
-
-  const result = await detectMinikube('', fakeMinikubeInstaller);
-  expect(result).toEqual('minikube');
-
-  // expect not called getAssetInfo
-  expect(fakeMinikubeInstaller.getAssetInfo).not.toBeCalled();
-
-  expect(execMock).toBeCalled();
-  // expect right parameters
-  expect(execMock.mock.calls[0][0]).toEqual('minikube');
-  expect(execMock.mock.calls[0][1]).toEqual(['version']);
 });
 
 describe('installBinaryToSystem', () => {
