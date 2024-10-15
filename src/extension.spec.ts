@@ -40,7 +40,7 @@ import {
   refreshMinikubeClustersOnProviderConnectionUpdate,
   registerCommandInstall,
 } from './extension';
-import { findMinikube } from './util';
+import { findMinikube, installBinaryToSystem } from './util';
 
 vi.mock('./util', () => ({
   findMinikube: vi.fn(),
@@ -118,6 +118,12 @@ beforeEach(() => {
   vi.mocked(MinikubeDownload).mockReturnValue(minikubeDownload);
 
   vi.mocked(containerEngine.listContainers).mockResolvedValue([]);
+
+  vi.mocked(installBinaryToSystem).mockResolvedValue('/system-wide/path/minikube');
+
+  vi.mocked(minikubeDownload.getLatestVersionAsset).mockResolvedValue({
+    tag: 'v1.56.0',
+  } as unknown as MinikubeGithubReleaseArtifactMetadata);
 });
 
 afterEach(() => {
@@ -229,10 +235,6 @@ describe('registerCommandInstall', () => {
   });
 
   test('command task should report progress', async () => {
-    vi.mocked(minikubeDownload.getLatestVersionAsset).mockResolvedValue({
-      tag: 'v1.56.0',
-    } as unknown as MinikubeGithubReleaseArtifactMetadata);
-
     let cmdListener: (() => Promise<void>) | undefined;
     vi.mocked(commands.registerCommand).mockImplementation((_command, mListener) => {
       cmdListener = mListener;
@@ -268,9 +270,6 @@ describe('registerCommandInstall', () => {
   });
 
   test('status bar item should not be disposed if download fails', async () => {
-    vi.mocked(minikubeDownload.getLatestVersionAsset).mockResolvedValue({
-      tag: 'v1.56.0',
-    } as unknown as MinikubeGithubReleaseArtifactMetadata);
     vi.mocked(minikubeDownload.download).mockRejectedValue(new Error('random download error'));
 
     let cmdListener: (() => Promise<void>) | undefined;
@@ -298,6 +297,80 @@ describe('registerCommandInstall', () => {
 
     // the status bar should be disposed on success
     expect(statusBarItemDipose).not.toHaveBeenCalled();
+  });
+
+  test('updateVersion should contain the system wide path and version', async () => {
+    const updateVersionMock = vi.fn();
+    vi.mocked(cli.createCliTool).mockReturnValue({
+      registerUpdate: vi.fn(),
+      updateVersion: updateVersionMock,
+      dispose: vi.fn(),
+    } as unknown as CliTool);
+
+    let cmdListener: (() => Promise<void>) | undefined;
+    vi.mocked(commands.registerCommand).mockImplementation((_command, mListener) => {
+      cmdListener = mListener;
+      return {
+        dispose: vi.fn(),
+      };
+    });
+    vi.mocked(window.showInformationMessage).mockResolvedValue('Yes');
+
+    vi.mocked(window.withProgress).mockImplementation((_options, task) => {
+      return task({ report: vi.fn() }, {} as unknown as CancellationToken);
+    });
+
+    await activate({ subscriptions: [] } as unknown as ExtensionContext);
+
+    await vi.waitFor(() => {
+      expect(cli.createCliTool).toHaveBeenCalled();
+    });
+
+    await cmdListener?.();
+
+    expect(updateVersionMock).toHaveBeenCalledWith({
+      version: '1.56.0',
+      path: '/system-wide/path/minikube',
+    });
+  });
+
+  test('updateVersion should contain the extension folder path if installBinaryToSystem rejects', async () => {
+    vi.mocked(installBinaryToSystem).mockRejectedValue(new Error('dummy error'));
+    const updateVersionMock = vi.fn();
+    vi.mocked(cli.createCliTool).mockReturnValue({
+      registerUpdate: vi.fn(),
+      updateVersion: updateVersionMock,
+      dispose: vi.fn(),
+    } as unknown as CliTool);
+
+    vi.mocked(minikubeDownload.download).mockResolvedValue('/extension-folder/minikube');
+
+    let cmdListener: (() => Promise<void>) | undefined;
+    vi.mocked(commands.registerCommand).mockImplementation((_command, mListener) => {
+      cmdListener = mListener;
+      return {
+        dispose: vi.fn(),
+      };
+    });
+
+    vi.mocked(window.showInformationMessage).mockResolvedValue('Yes');
+
+    vi.mocked(window.withProgress).mockImplementation((_options, task) => {
+      return task({ report: vi.fn() }, {} as unknown as CancellationToken);
+    });
+
+    await activate({ subscriptions: [] } as unknown as ExtensionContext);
+
+    await vi.waitFor(() => {
+      expect(cli.createCliTool).toHaveBeenCalled();
+    });
+
+    await cmdListener?.();
+
+    expect(updateVersionMock).toHaveBeenCalledWith({
+      version: '1.56.0',
+      path: '/extension-folder/minikube',
+    });
   });
 });
 
@@ -377,9 +450,6 @@ describe('activate - cli tool', () => {
       stderr: '',
       command: '',
     });
-    vi.mocked(minikubeDownload.getLatestVersionAsset).mockResolvedValue({
-      tag: 'v1.56.0',
-    } as unknown as MinikubeGithubReleaseArtifactMetadata);
 
     const registerUpdateMock = vi.fn();
     vi.mocked(cli.createCliTool).mockReturnValue({

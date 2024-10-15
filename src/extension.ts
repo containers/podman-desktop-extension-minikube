@@ -267,7 +267,7 @@ export function registerCommandInstall(
         const lastReleaseVersion = lastReleaseMetadata.tag.replace('v', '').trim();
 
         progress.report({ message: `Downloading minikube ${lastReleaseVersion}` });
-        const destFile = await minikubeDownload.download(lastReleaseMetadata);
+        let destFile = await minikubeDownload.download(lastReleaseMetadata);
         statusBarItem.dispose();
 
         // ask the user if we should install system-wide
@@ -276,22 +276,21 @@ export function registerCommandInstall(
           'Yes',
           'Cancel',
         );
-        if (result !== 'Yes') {
+
+        try {
+          if (result === 'Yes') {
+            progress.report({ message: 'Installing minikube system-wide' });
+            destFile = await installBinaryToSystem(destFile, 'minikube');
+          }
+        } catch (err: unknown) {
+          console.debug(err);
+        } finally {
           minikubeCliTool?.updateVersion({
             version: lastReleaseVersion,
             path: destFile,
           });
           minikubeCliToolUpdaterDisposable?.dispose();
-          return;
         }
-
-        progress.report({ message: 'Installing minikube system-wide' });
-        const systemPath = await installBinaryToSystem(destFile, 'minikube');
-        minikubeCliTool?.updateVersion({
-          version: lastReleaseVersion,
-          path: systemPath,
-        });
-        minikubeCliToolUpdaterDisposable?.dispose();
       },
     );
   });
