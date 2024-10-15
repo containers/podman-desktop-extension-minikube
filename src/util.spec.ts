@@ -22,10 +22,18 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 import * as extensionApi from '@podman-desktop/api';
-import { afterEach, beforeEach, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import type { MinikubeInstaller } from './minikube-installer';
-import { detectMinikube, getMinikubeHome, getMinikubePath, installBinaryToSystem } from './util';
+import {
+  deleteFile,
+  deleteFileAsAdmin,
+  detectMinikube,
+  getMinikubeHome,
+  getMinikubePath,
+  installBinaryToSystem,
+  whereBinary,
+} from './util';
 
 vi.mock('@podman-desktop/api', async () => {
   return {
@@ -61,6 +69,9 @@ vi.mock('node:child_process');
 vi.mock('node:fs', async () => {
   return {
     existsSync: vi.fn(),
+    promises: {
+      unlink: vi.fn(),
+    },
   };
 });
 
@@ -72,52 +83,60 @@ beforeEach(() => {
   vi.mocked(extensionApi.configuration.getConfiguration).mockReturnValue({
     get: configGetMock,
   } as unknown as extensionApi.Configuration);
+
+  vi.mocked(extensionApi.env).isMac = false;
+  vi.mocked(extensionApi.env).isWindows = false;
+  vi.mocked(extensionApi.env).isLinux = false;
 });
 
 afterEach(() => {
   process.env = originalProcessEnv;
 });
 
-test('getMinikubePath on macOS', async () => {
-  vi.mocked(extensionApi.env).isMac = true;
+describe('getMinikubePath', () => {
+  test('getMinikubePath on macOS', async () => {
+    vi.mocked(extensionApi.env).isMac = true;
 
-  const computedPath = getMinikubePath();
-  expect(computedPath).toEqual('/usr/local/bin:/opt/homebrew/bin:/opt/local/bin:/opt/podman/bin');
+    const computedPath = getMinikubePath();
+    expect(computedPath).toEqual('/usr/local/bin:/opt/homebrew/bin:/opt/local/bin:/opt/podman/bin');
+  });
+
+  test('getMinikubePath on macOS with existing PATH', async () => {
+    const existingPATH = '/my-existing-path';
+    process.env.PATH = existingPATH;
+    vi.mocked(extensionApi.env).isMac = true;
+
+    const computedPath = getMinikubePath();
+    expect(computedPath).toEqual(`${existingPATH}:/usr/local/bin:/opt/homebrew/bin:/opt/local/bin:/opt/podman/bin`);
+  });
 });
 
-test('getMinikubePath on macOS with existing PATH', async () => {
-  const existingPATH = '/my-existing-path';
-  process.env.PATH = existingPATH;
-  vi.mocked(extensionApi.env).isMac = true;
+describe('getMinikubeHome', () => {
+  test('getMinikubeHome with empty configuration property', async () => {
+    const existingEnvHome = '/my-existing-minikube-home';
+    const existingConfigHome = '';
+    process.env.MINIKUBE_HOME = existingEnvHome;
 
-  const computedPath = getMinikubePath();
-  expect(computedPath).toEqual(`${existingPATH}:/usr/local/bin:/opt/homebrew/bin:/opt/local/bin:/opt/podman/bin`);
-});
+    configGetMock.mockReturnValue(existingConfigHome);
 
-test('getMinikubeHome with empty configuration property', async () => {
-  const existingEnvHome = '/my-existing-minikube-home';
-  const existingConfigHome = '';
-  process.env.MINIKUBE_HOME = existingEnvHome;
+    const computedHome = getMinikubeHome();
 
-  configGetMock.mockReturnValue(existingConfigHome);
+    expect(computedHome).toEqual(existingEnvHome);
+    expect(computedHome).not.toEqual(existingConfigHome);
+  });
 
-  const computedHome = getMinikubeHome();
+  test('getMinikubeHome with empty configuration property', async () => {
+    const existingEnvHome = '/my-existing-minikube-home';
+    const existingConfigHome = '/my-another-existing-minikube-home';
+    process.env.MINIKUBE_HOME = existingEnvHome;
 
-  expect(computedHome).toEqual(existingEnvHome);
-  expect(computedHome).not.toEqual(existingConfigHome);
-});
+    configGetMock.mockReturnValue(existingConfigHome);
 
-test('getMinikubeHome with empty configuration property', async () => {
-  const existingEnvHome = '/my-existing-minikube-home';
-  const existingConfigHome = '/my-another-existing-minikube-home';
-  process.env.MINIKUBE_HOME = existingEnvHome;
+    const computedHome = getMinikubeHome();
 
-  configGetMock.mockReturnValue(existingConfigHome);
-
-  const computedHome = getMinikubeHome();
-
-  expect(computedHome).not.toEqual(existingEnvHome);
-  expect(computedHome).toEqual(existingConfigHome);
+    expect(computedHome).not.toEqual(existingEnvHome);
+    expect(computedHome).toEqual(existingConfigHome);
+  });
 });
 
 test('detectMinikube', async () => {
@@ -143,83 +162,220 @@ test('detectMinikube', async () => {
   expect(execMock.mock.calls[0][1]).toEqual(['version']);
 });
 
-test('error: expect installBinaryToSystem to fail with a non existing binary', async () => {
-  // Mock the platform to be linux
-  Object.defineProperty(process, 'platform', {
-    value: 'linux',
+describe('installBinaryToSystem', () => {
+  test('error: expect installBinaryToSystem to fail with a non existing binary', async () => {
+    // Mock the platform to be linux
+    Object.defineProperty(process, 'platform', {
+      value: 'linux',
+    });
+    vi.mocked(extensionApi.env).isLinux = true;
+
+    vi.spyOn(extensionApi.process, 'exec').mockImplementation(
+      () =>
+        new Promise<extensionApi.RunResult>((_, reject) => {
+          const error: extensionApi.RunError = {
+            name: '',
+            message: 'Command failed',
+            exitCode: 1603,
+            command: 'command',
+            stdout: 'stdout',
+            stderr: 'stderr',
+            cancelled: false,
+            killed: false,
+          };
+
+          reject(error);
+        }),
+    );
+
+    // Expect await installBinaryToSystem to throw an error
+    await expect(installBinaryToSystem('test', 'tmpBinary')).rejects.toThrowError();
   });
 
-  vi.spyOn(extensionApi.process, 'exec').mockImplementation(
-    () =>
-      new Promise<extensionApi.RunResult>((_, reject) => {
-        const error: extensionApi.RunError = {
-          name: '',
-          message: 'Command failed',
-          exitCode: 1603,
-          command: 'command',
-          stdout: 'stdout',
-          stderr: 'stderr',
-          cancelled: false,
-          killed: false,
-        };
+  test('success: installBinaryToSystem on mac with /usr/local/bin already created', async () => {
+    // Mock the platform to be darwin
+    Object.defineProperty(process, 'platform', {
+      value: 'darwin',
+    });
+    vi.mocked(extensionApi.env).isMac = true;
 
-        reject(error);
-      }),
-  );
+    // Mock existsSync to be true since within the function it's doing: !fs.existsSync(localBinDir)
+    vi.spyOn(fs, 'existsSync').mockImplementation(() => {
+      return true;
+    });
 
-  // Expect await installBinaryToSystem to throw an error
-  await expect(installBinaryToSystem('test', 'tmpBinary')).rejects.toThrowError();
+    const destination = `${path.sep}usr${path.sep}local${path.sep}bin${path.sep}tmpBinary`;
+
+    // Run installBinaryToSystem which will trigger the spyOn mock
+    const result = await installBinaryToSystem('test', 'tmpBinary');
+    expect(result).toBe(destination);
+
+    // check called with admin being true
+    expect(extensionApi.process.exec).toBeCalledWith('chmod', expect.arrayContaining(['+x', 'test']));
+    expect(extensionApi.process.exec).toHaveBeenNthCalledWith(2, 'cp', ['test', destination], { isAdmin: true });
+  });
+
+  test('expect: installBinaryToSystem on linux with /usr/local/bin NOT created yet (expect mkdir -p command)', async () => {
+    // Mock the platform to be darwin
+    Object.defineProperty(process, 'platform', {
+      value: 'linux',
+    });
+    vi.mocked(extensionApi.env).isLinux = true;
+
+    // Mock existsSync to be false since within the function it's doing: !fs.existsSync(localBinDir)
+    vi.spyOn(fs, 'existsSync').mockImplementation(() => {
+      return false;
+    });
+
+    // Run installBinaryToSystem which will trigger the spyOn mock
+    await installBinaryToSystem('test', 'tmpBinary');
+
+    expect(extensionApi.process.exec).toBeCalledWith('chmod', expect.arrayContaining(['+x', 'test']));
+
+    // check called with admin being true
+    expect(extensionApi.process.exec).toBeCalledWith(
+      'mkdir',
+      ['-p', '/usr/local/bin'],
+      expect.objectContaining({ isAdmin: true }),
+    );
+    expect(extensionApi.process.exec).toBeCalledWith(
+      'cp',
+      ['test', `${path.sep}usr${path.sep}local${path.sep}bin${path.sep}tmpBinary`],
+      expect.objectContaining({ isAdmin: true }),
+    );
+  });
 });
 
-test('success: installBinaryToSystem on mac with /usr/local/bin already created', async () => {
-  // Mock the platform to be darwin
-  Object.defineProperty(process, 'platform', {
-    value: 'darwin',
+describe('whereBinary', () => {
+  test.each(['isLinux', 'isMac'] as ('isLinux' | 'isMac')[])('%s should use which', async platform => {
+    vi.mocked(extensionApi.env)[platform] = true;
+    vi.mocked(extensionApi.process.exec).mockResolvedValue({
+      stdout: '/usr/bin/minikube',
+      stderr: '',
+      command: '',
+    });
+
+    const result = await whereBinary('minikube');
+
+    expect(extensionApi.process.exec).toHaveBeenCalledOnce();
+    expect(extensionApi.process.exec).toHaveBeenCalledWith('which', ['minikube']);
+    expect(result).toBe('/usr/bin/minikube');
   });
 
-  // Mock existsSync to be true since within the function it's doing: !fs.existsSync(localBinDir)
-  vi.spyOn(fs, 'existsSync').mockImplementation(() => {
-    return true;
+  test('isWindow should use where.exe', async () => {
+    vi.mocked(extensionApi.env).isWindows = true;
+    vi.mocked(extensionApi.process.exec).mockResolvedValue({
+      stdout: 'C:/dummy/windows/path/minikube.exe',
+      stderr: '',
+      command: '',
+    });
+
+    const result = await whereBinary('minikube');
+
+    expect(extensionApi.process.exec).toHaveBeenCalledOnce();
+    expect(extensionApi.process.exec).toHaveBeenCalledWith('where.exe', ['minikube']);
+    expect(result).toBe('C:/dummy/windows/path/minikube.exe');
   });
 
-  // Run installBinaryToSystem which will trigger the spyOn mock
-  await installBinaryToSystem('test', 'tmpBinary');
+  test('error on linux should propagate', async () => {
+    vi.mocked(extensionApi.env).isLinux = true;
+    vi.mocked(extensionApi.process.exec).mockRejectedValue(new Error('something wrong'));
 
-  // check called with admin being true
-  expect(extensionApi.process.exec).toBeCalledWith('chmod', expect.arrayContaining(['+x', 'test']));
-  expect(extensionApi.process.exec).toHaveBeenNthCalledWith(
-    2,
-    'cp',
-    ['test', `${path.sep}usr${path.sep}local${path.sep}bin${path.sep}tmpBinary`],
-    { isAdmin: true },
-  );
+    await expect(async () => {
+      await whereBinary('minikube');
+    }).rejects.toThrowError(`binary minikube not found`);
+  });
+
+  test('error on window should propagate', async () => {
+    vi.mocked(extensionApi.env).isWindows = true;
+    vi.mocked(extensionApi.process.exec).mockRejectedValue(new Error('something wrong'));
+
+    await expect(async () => {
+      await whereBinary('minikube');
+    }).rejects.toThrowError(`binary minikube not found`);
+  });
 });
 
-test('expect: installBinaryToSystem on linux with /usr/local/bin NOT created yet (expect mkdir -p command)', async () => {
-  // Mock the platform to be darwin
-  Object.defineProperty(process, 'platform', {
-    value: 'linux',
+describe('deleteFile', () => {
+  test('file that does not exists should do nothing', async () => {
+    vi.mocked(fs.existsSync).mockReturnValue(false);
+    await deleteFile('/dummy/minikube');
+
+    expect(fs.promises.unlink).not.toHaveBeenCalled();
   });
 
-  // Mock existsSync to be false since within the function it's doing: !fs.existsSync(localBinDir)
-  vi.spyOn(fs, 'existsSync').mockImplementation(() => {
-    return false;
+  test('file that exist should unlink', async () => {
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    await deleteFile('/dummy/minikube');
+
+    expect(fs.promises.unlink).toHaveBeenCalledWith('/dummy/minikube');
   });
 
-  // Run installBinaryToSystem which will trigger the spyOn mock
-  await installBinaryToSystem('test', 'tmpBinary');
+  test('unknown error on unlink should propagate', async () => {
+    vi.mocked(extensionApi.env).isWindows = true;
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(fs.promises.unlink).mockRejectedValue(new Error('weird error'));
 
-  expect(extensionApi.process.exec).toBeCalledWith('chmod', expect.arrayContaining(['+x', 'test']));
+    await expect(async () => {
+      await deleteFile('C:/dummy/minikube.exe');
+    }).rejects.toThrowError('weird error');
 
-  // check called with admin being true
-  expect(extensionApi.process.exec).toBeCalledWith(
-    'mkdir',
-    ['-p', '/usr/local/bin'],
-    expect.objectContaining({ isAdmin: true }),
-  );
-  expect(extensionApi.process.exec).toBeCalledWith(
-    'cp',
-    ['test', `${path.sep}usr${path.sep}local${path.sep}bin${path.sep}tmpBinary`],
-    expect.objectContaining({ isAdmin: true }),
-  );
+    expect(fs.promises.unlink).toHaveBeenCalledWith('C:/dummy/minikube.exe');
+    expect(extensionApi.process.exec).not.toHaveBeenCalled();
+  });
+
+  test('access error on unlink should try to delete with admin privilege', async () => {
+    vi.mocked(extensionApi.env).isWindows = true;
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+    vi.mocked(fs.promises.unlink).mockRejectedValue({ code: 'EACCES' });
+
+    await deleteFile('C:/dummy/minikube.exe');
+
+    expect(fs.promises.unlink).toHaveBeenCalledWith('C:/dummy/minikube.exe');
+    expect(extensionApi.process.exec).toHaveBeenCalledOnce();
+    expect(extensionApi.process.exec).toHaveBeenCalledWith('del', ['C:/dummy/minikube.exe'], {
+      isAdmin: true,
+    });
+  });
+});
+
+describe('deleteFileAsAdmin', () => {
+  test('error should propagate', async () => {
+    vi.mocked(extensionApi.env).isLinux = true;
+    vi.mocked(extensionApi.process.exec).mockRejectedValue(new Error('something wrong'));
+
+    await expect(async () => {
+      await deleteFileAsAdmin('/dummy/minikube');
+    }).rejects.toThrowError('something wrong');
+  });
+
+  test('linux should use rm', async () => {
+    vi.mocked(extensionApi.env).isLinux = true;
+
+    await deleteFileAsAdmin('/dummy/minikube');
+    expect(extensionApi.process.exec).toHaveBeenCalledOnce();
+    expect(extensionApi.process.exec).toHaveBeenCalledWith('rm', ['/dummy/minikube'], {
+      isAdmin: true,
+    });
+  });
+
+  test('window should use rm', async () => {
+    vi.mocked(extensionApi.env).isWindows = true;
+
+    await deleteFileAsAdmin('C:/dummy/minikube.exe');
+    expect(extensionApi.process.exec).toHaveBeenCalledOnce();
+    expect(extensionApi.process.exec).toHaveBeenCalledWith('del', ['C:/dummy/minikube.exe'], {
+      isAdmin: true,
+    });
+  });
+
+  test('mac should use rm', async () => {
+    vi.mocked(extensionApi.env).isMac = true;
+
+    await deleteFileAsAdmin('/dummy/minikube');
+    expect(extensionApi.process.exec).toHaveBeenCalledOnce();
+    expect(extensionApi.process.exec).toHaveBeenCalledWith('rm', ['/dummy/minikube'], {
+      isAdmin: true,
+    });
+  });
 });
