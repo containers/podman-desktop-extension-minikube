@@ -22,7 +22,7 @@ import { beforeEach } from 'node:test';
 
 import type { Octokit } from '@octokit/rest';
 import type * as extensionApi from '@podman-desktop/api';
-import { env } from '@podman-desktop/api';
+import { env, process as processCore } from '@podman-desktop/api';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import type { MinikubeGithubReleaseArtifactMetadata } from './download';
@@ -30,7 +30,7 @@ import { MinikubeDownload } from './download';
 
 // Create the OS class as well as fake extensionContext
 const extensionContext: extensionApi.ExtensionContext = {
-  storagePath: '/fake/path',
+  storagePath: '/extension-folder/',
   subscriptions: [],
 } as unknown as extensionApi.ExtensionContext;
 
@@ -55,6 +55,9 @@ vi.mock('@podman-desktop/api', () => ({
     isWindows: false,
     isLinux: false,
     isMac: false,
+  },
+  process: {
+    exec: vi.fn(),
   },
 }));
 
@@ -155,5 +158,46 @@ describe('getMinikubeExtensionPath', () => {
 
     const minikubeDownload = new MinikubeDownload(extensionContext, octokitMock);
     expect(minikubeDownload.getMinikubeExtensionPath()).toStrictEqual(expect.stringMatching('.*\\minikube$'));
+  });
+});
+
+describe('findMinikube', () => {
+  test('should use system wide first', async () => {
+    (env.isWindows as boolean) = true;
+
+    const minikubeDownload = new MinikubeDownload(extensionContext, octokitMock);
+
+    vi.mocked(processCore.exec).mockResolvedValue({
+      stdout: '/dummy/tmp/minikube',
+      stderr: '',
+      command: '',
+    });
+
+    const result = await minikubeDownload.findMinikube();
+    expect(result).toBe('/dummy/tmp/minikube');
+  });
+
+  test('system wide missing should fallback to local extension folder', async () => {
+    (env.isWindows as boolean) = false;
+    vi.mocked(processCore.exec).mockRejectedValue(new Error('dummy error'));
+
+    const minikubeDownload = new MinikubeDownload(extensionContext, octokitMock);
+
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+
+    const result = await minikubeDownload.findMinikube();
+    expect(result).toStrictEqual(expect.stringContaining('extension-folder'));
+  });
+
+  test('system wide missing should fallback to local extension folder', async () => {
+    (env.isWindows as boolean) = false;
+    vi.mocked(processCore.exec).mockRejectedValue(new Error('dummy error'));
+
+    const minikubeDownload = new MinikubeDownload(extensionContext, octokitMock);
+
+    vi.mocked(fs.existsSync).mockReturnValue(false);
+
+    const result = await minikubeDownload.findMinikube();
+    expect(result).toBeUndefined();
   });
 });

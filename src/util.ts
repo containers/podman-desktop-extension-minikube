@@ -22,7 +22,6 @@ import * as path from 'node:path';
 
 import * as extensionApi from '@podman-desktop/api';
 
-import type { MinikubeDownload } from './download';
 import type { MinikubeInstaller } from './minikube-installer';
 
 const macosExtraPath = '/usr/local/bin:/opt/homebrew/bin:/opt/local/bin:/opt/podman/bin';
@@ -56,7 +55,7 @@ export function getMinikubeHome(): string | undefined {
  * search if minikube is available in the path
  * @param pathAddition
  * @param installer
- * @deprecated use {@link findMinikube}
+ * @deprecated use {@link MinikubeDownload#findMinikube}
  */
 export async function detectMinikube(pathAddition: string, installer: MinikubeInstaller): Promise<string> {
   try {
@@ -88,20 +87,6 @@ export async function detectMinikube(pathAddition: string, installer: MinikubeIn
     }
   }
   return undefined;
-}
-
-// search if minikube is available in the path or in the extension folder
-export async function findMinikube(downloader: MinikubeDownload): Promise<string | undefined> {
-  try {
-    return await whereBinary('minikube');
-  } catch (err: unknown) {
-    console.debug(err);
-  }
-
-  const extensionPath = downloader.getMinikubeExtensionPath();
-  if (fs.existsSync(extensionPath)) {
-    return extensionPath;
-  }
 }
 
 export function getBinarySystemPath(binaryName: string): string {

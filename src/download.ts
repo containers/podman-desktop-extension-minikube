@@ -25,6 +25,8 @@ import type { Octokit } from '@octokit/rest';
 import type * as extensionApi from '@podman-desktop/api';
 import { env } from '@podman-desktop/api';
 
+import { whereBinary } from './util';
+
 export interface MinikubeGithubReleaseArtifactMetadata {
   tag: string;
   id: number;
@@ -72,6 +74,22 @@ export class MinikubeDownload {
       fileExtension = '.exe';
     }
     return path.resolve(this.extensionContext.storagePath, `minikube${fileExtension}`);
+  }
+
+  /**
+   * search if minikube is available in the path or in the extension folder
+   */
+  async findMinikube(): Promise<string | undefined> {
+    try {
+      return await whereBinary('minikube');
+    } catch (err: unknown) {
+      console.debug(err);
+    }
+
+    const extensionPath = this.getMinikubeExtensionPath();
+    if (fs.existsSync(extensionPath)) {
+      return extensionPath;
+    }
   }
 
   // Download minikube from the artifact metadata: MinikubeGithubReleaseArtifactMetadata
