@@ -23,6 +23,7 @@ import * as path from 'node:path';
 
 import type { Octokit } from '@octokit/rest';
 import type * as extensionApi from '@podman-desktop/api';
+import { env } from '@podman-desktop/api';
 
 export interface MinikubeGithubReleaseArtifactMetadata {
   tag: string;
@@ -65,6 +66,14 @@ export class MinikubeDownload {
     return latestReleases[0];
   }
 
+  getMinikubeExtensionPath(): string {
+    let fileExtension = '';
+    if (env.isWindows) {
+      fileExtension = '.exe';
+    }
+    return path.resolve(this.extensionContext.storagePath, `minikube${fileExtension}`);
+  }
+
   // Download minikube from the artifact metadata: MinikubeGithubReleaseArtifactMetadata
   // this will download it to the storage bin folder as well as make it executable
   // return the path where the file has been downloaded
@@ -74,17 +83,12 @@ export class MinikubeDownload {
 
     // Get the storage and check to see if it exists before we download kubectl
     const storageData = this.extensionContext.storagePath;
-    const storageBinFolder = path.resolve(storageData, 'bin');
-    if (!existsSync(storageBinFolder)) {
-      await promises.mkdir(storageBinFolder, { recursive: true });
+    if (!existsSync(storageData)) {
+      await promises.mkdir(storageData, { recursive: true });
     }
 
     // Correct the file extension and path resolution
-    let fileExtension = '';
-    if (process.platform === 'win32') {
-      fileExtension = '.exe';
-    }
-    const minikubeDownloadLocation = path.resolve(storageBinFolder, `minikube${fileExtension}`);
+    const minikubeDownloadLocation = this.getMinikubeExtensionPath();
 
     // Download the asset and make it executable
     await this.downloadReleaseAsset(assetId, minikubeDownloadLocation);
