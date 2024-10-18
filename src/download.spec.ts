@@ -239,6 +239,48 @@ describe('selectVersion', () => {
   });
 });
 
+describe('install', () => {
+  test('install should download the asset provided', async () => {
+    (env.isWindows as boolean) = true;
+    const release: MinikubeGithubReleaseArtifactMetadata = {
+      tag: 'v1.2.3',
+      id: 55,
+      label: 'v1.5.2',
+    };
+
+    const minikubeDownload = new MinikubeDownload(extensionContext, octokitMock);
+
+    vi.spyOn(minikubeDownload, 'download').mockResolvedValue('/download/asset/path');
+
+    vi.mocked(processCore.exec).mockResolvedValue({
+      stdout: '',
+      stderr: '',
+      command: '',
+    });
+
+    await minikubeDownload.install(release);
+    expect(minikubeDownload.download).toHaveBeenCalledWith(release);
+  });
+
+  test('install fallback to download path if install system wide failed', async () => {
+    (env.isWindows as boolean) = true;
+    const release: MinikubeGithubReleaseArtifactMetadata = {
+      tag: 'v1.2.3',
+      id: 55,
+      label: 'v1.5.2',
+    };
+
+    const minikubeDownload = new MinikubeDownload(extensionContext, octokitMock);
+
+    vi.spyOn(minikubeDownload, 'download').mockResolvedValue('/download/asset/path');
+
+    vi.mocked(processCore.exec).mockRejectedValue(new Error('random error'));
+
+    const file = await minikubeDownload.install(release);
+    expect(file).toBe('/download/asset/path');
+  });
+});
+
 describe('findMinikube', () => {
   test('should use system wide first', async () => {
     (env.isWindows as boolean) = true;

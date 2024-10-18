@@ -25,7 +25,7 @@ import type { Octokit } from '@octokit/rest';
 import type * as extensionApi from '@podman-desktop/api';
 import { env, window } from '@podman-desktop/api';
 
-import { whereBinary } from './util';
+import { installBinaryToSystem, whereBinary } from './util';
 
 export interface MinikubeGithubReleaseArtifactMetadata extends extensionApi.QuickPickItem {
   tag: string;
@@ -111,6 +111,16 @@ export class MinikubeDownload {
     if (fs.existsSync(extensionPath)) {
       return extensionPath;
     }
+  }
+
+  async install(release: MinikubeGithubReleaseArtifactMetadata): Promise<string> {
+    let destFile = await this.download(release);
+    try {
+      destFile = await installBinaryToSystem(destFile, 'minikube');
+    } catch (err: unknown) {
+      console.debug('Cannot install system wide', err);
+    }
+    return destFile;
   }
 
   // Download minikube from the artifact metadata: MinikubeGithubReleaseArtifactMetadata
