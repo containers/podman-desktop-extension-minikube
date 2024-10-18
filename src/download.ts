@@ -69,17 +69,17 @@ export class MinikubeDownload {
   }
 
   async selectVersion(cliInfo?: extensionApi.CliTool): Promise<MinikubeGithubReleaseArtifactMetadata> {
-    let lastReleasesMetadata = await this.grabLatestsReleasesMetadata();
+    let releasesMetadata = await this.grabLatestsReleasesMetadata();
 
-    if (lastReleasesMetadata.length === 0) throw new Error('cannot grab minikube releases');
+    if (releasesMetadata.length === 0) throw new Error('cannot grab minikube releases');
 
     // if the user already has an installed version, we remove it from the list
     if (cliInfo) {
-      lastReleasesMetadata = lastReleasesMetadata.filter(release => release.tag.slice(1) !== cliInfo.version);
+      releasesMetadata = releasesMetadata.filter(release => release.tag.slice(1) !== cliInfo.version);
     }
 
     // Show the quickpick
-    const selectedRelease = await window.showQuickPick(lastReleasesMetadata, {
+    const selectedRelease = await window.showQuickPick(releasesMetadata, {
       placeHolder: 'Select Kind version to download',
     });
 
