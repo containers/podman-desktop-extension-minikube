@@ -22,7 +22,8 @@ import { beforeEach } from 'node:test';
 
 import type { Octokit } from '@octokit/rest';
 import type * as extensionApi from '@podman-desktop/api';
-import { afterEach, expect, test, vi } from 'vitest';
+import { env } from '@podman-desktop/api';
+import { afterEach, describe,expect, test, vi } from 'vitest';
 
 import type { MinikubeGithubReleaseArtifactMetadata } from './download';
 import { MinikubeDownload } from './download';
@@ -48,6 +49,14 @@ const releases: MinikubeGithubReleaseArtifactMetadata[] = [
     id: release.id,
   };
 });
+
+vi.mock('@podman-desktop/api', () => ({
+  env: {
+    isWindows: false,
+    isLinux: false,
+    isMac: false,
+  },
+}));
 
 const listReleaseAssetsMock = vi.fn();
 const listReleasesMock = vi.fn();
@@ -131,4 +140,20 @@ test('test download of minikube passes and that mkdir and executable mocks are c
   // Expect the mkdir and executables to have been called
   expect(mkdirMock).toHaveBeenCalled();
   expect(makeExecutableMock).toHaveBeenCalled();
+});
+
+describe('getMinikubeExtensionPath', () => {
+  test('window platform should add .exe suffix', async () => {
+    (env.isWindows as boolean) = true;
+
+    const minikubeDownload = new MinikubeDownload(extensionContext, octokitMock);
+    expect(minikubeDownload.getMinikubeExtensionPath()).toStrictEqual(expect.stringMatching('.*\\minikube.exe$'));
+  });
+
+  test('non-window platform should not add .exe suffix', async () => {
+    (env.isWindows as boolean) = false;
+
+    const minikubeDownload = new MinikubeDownload(extensionContext, octokitMock);
+    expect(minikubeDownload.getMinikubeExtensionPath()).toStrictEqual(expect.stringMatching('.*\\minikube$'));
+  });
 });
