@@ -84,7 +84,7 @@
   },
   "devDependencies": {
     "7zip-min": "^1.4.5",
-    "@eslint/compat": "^1.2.0",
+    "@eslint/compat": "^1.2.1",
     "@podman-desktop/api": "^1.13.2",
     "@typescript-eslint/eslint-plugin": "^8.10.0",
     "@typescript-eslint/parser": "^8.10.0",
