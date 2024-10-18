@@ -56,6 +56,9 @@ const MACOS_X64_ASSET_NAME = 'minikube-darwin-amd64';
 
 const MACOS_ARM64_ASSET_NAME = 'minikube-darwin-arm64';
 
+/**
+ * @deprecated use {@link MinikubeDownload} instead
+ */
 export class MinikubeInstaller {
   private assetNames = new Map<string, string>();
 

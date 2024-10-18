@@ -24,11 +24,13 @@ import * as path from 'node:path';
 import * as extensionApi from '@podman-desktop/api';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import type { MinikubeDownload } from './download';
 import type { MinikubeInstaller } from './minikube-installer';
 import {
   deleteFile,
   deleteFileAsAdmin,
   detectMinikube,
+  findMinikube,
   getMinikubeHome,
   getMinikubePath,
   installBinaryToSystem,
@@ -108,6 +110,53 @@ describe('getMinikubePath', () => {
 
     const computedPath = getMinikubePath();
     expect(computedPath).toEqual(`${existingPATH}:/usr/local/bin:/opt/homebrew/bin:/opt/local/bin:/opt/podman/bin`);
+  });
+});
+
+describe('findMinikube', () => {
+  test('should use system wide first', async () => {
+    vi.mocked(extensionApi.env).isLinux = true;
+    const getMinikubeExtensionPathMock = vi.fn();
+    vi.mocked(extensionApi.process.exec).mockResolvedValue({
+      stdout: '/dummy/tmp/minikube',
+      stderr: '',
+      command: '',
+    });
+
+    const result = await findMinikube({
+      getMinikubeExtensionPath: getMinikubeExtensionPathMock,
+    } as unknown as MinikubeDownload);
+    expect(result).toBe('/dummy/tmp/minikube');
+    expect(getMinikubeExtensionPathMock).not.toHaveBeenCalled();
+  });
+
+  test('system wide missing should fallback to local extension folder', async () => {
+    vi.mocked(extensionApi.env).isLinux = true;
+    const getMinikubeExtensionPathMock = vi.fn();
+    vi.mocked(extensionApi.process.exec).mockRejectedValue(new Error('dummy error'));
+
+    getMinikubeExtensionPathMock.mockReturnValue('/extension-storage/minikube');
+    vi.mocked(fs.existsSync).mockReturnValue(true);
+
+    const result = await findMinikube({
+      getMinikubeExtensionPath: getMinikubeExtensionPathMock,
+    } as unknown as MinikubeDownload);
+    expect(result).toBe('/extension-storage/minikube');
+    expect(getMinikubeExtensionPathMock).toHaveBeenCalled();
+  });
+
+  test('should return undefined if not system wide and not in extension folder', async () => {
+    vi.mocked(extensionApi.env).isLinux = true;
+    const getMinikubeExtensionPathMock = vi.fn();
+    vi.mocked(extensionApi.process.exec).mockRejectedValue(new Error('dummy error'));
+
+    getMinikubeExtensionPathMock.mockReturnValue('/extension-storage/minikube');
+    vi.mocked(fs.existsSync).mockReturnValue(false);
+
+    const result = await findMinikube({
+      getMinikubeExtensionPath: getMinikubeExtensionPathMock,
+    } as unknown as MinikubeDownload);
+    expect(result).toBe(undefined);
   });
 });
 
