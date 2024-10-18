@@ -22,7 +22,7 @@ import { beforeEach } from 'node:test';
 
 import type { Octokit } from '@octokit/rest';
 import type * as extensionApi from '@podman-desktop/api';
-import { env, process as processCore } from '@podman-desktop/api';
+import { env, process as processCore, window } from '@podman-desktop/api';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import type { MinikubeGithubReleaseArtifactMetadata } from './download';
@@ -58,6 +58,9 @@ vi.mock('@podman-desktop/api', () => ({
   },
   process: {
     exec: vi.fn(),
+  },
+  window: {
+    showQuickPick: vi.fn(),
   },
 }));
 
@@ -158,6 +161,81 @@ describe('getMinikubeExtensionPath', () => {
 
     const minikubeDownload = new MinikubeDownload(extensionContext, octokitMock);
     expect(minikubeDownload.getMinikubeExtensionPath()).toStrictEqual(expect.stringMatching('.*\\minikube$'));
+  });
+});
+
+describe('selectVersion', () => {
+  test('should throw an error if no releases has been found', async () => {
+    const minikubeDownload = new MinikubeDownload(extensionContext, octokitMock);
+    vi.spyOn(minikubeDownload, 'grabLatestsReleasesMetadata').mockResolvedValue([]);
+
+    await expect(async () => {
+      await minikubeDownload.selectVersion();
+    }).rejects.toThrowError('cannot grab minikube releases');
+  });
+
+  test('should throw an error if user did not select any version', async () => {
+    const minikubeDownload = new MinikubeDownload(extensionContext, octokitMock);
+    vi.spyOn(minikubeDownload, 'grabLatestsReleasesMetadata').mockResolvedValue([
+      {
+        label: 'v1.5.2',
+        tag: 'v1.5.2',
+        id: 55,
+      },
+    ]);
+
+    vi.mocked(window.showQuickPick).mockResolvedValue(undefined);
+
+    await expect(async () => {
+      await minikubeDownload.selectVersion();
+    }).rejects.toThrowError('No version selected');
+  });
+
+  test('should use quick pick api to request user to select version', async () => {
+    const minikubeDownload = new MinikubeDownload(extensionContext, octokitMock);
+    const release = {
+      label: 'v1.5.2',
+      tag: 'v1.5.2',
+      id: 55,
+    };
+    vi.spyOn(minikubeDownload, 'grabLatestsReleasesMetadata').mockResolvedValue([release]);
+
+    vi.mocked(window.showQuickPick).mockResolvedValue(release);
+
+    const result = await minikubeDownload.selectVersion();
+    expect(result).toStrictEqual(release);
+
+    expect(window.showQuickPick).toHaveBeenCalledWith([release], {
+      placeHolder: 'Select Kind version to download',
+    });
+  });
+
+  test('should filter out existing version if cliTool is provided as argument', async () => {
+    const minikubeDownload = new MinikubeDownload(extensionContext, octokitMock);
+    const release = {
+      label: 'v1.5.2',
+      tag: 'v1.5.2',
+      id: 55,
+    };
+    vi.spyOn(minikubeDownload, 'grabLatestsReleasesMetadata').mockResolvedValue([
+      {
+        label: 'v1.5.1',
+        tag: 'v1.5.1',
+        id: 54,
+      },
+      release,
+    ]);
+
+    vi.mocked(window.showQuickPick).mockResolvedValue(release);
+
+    const result = await minikubeDownload.selectVersion({
+      version: '1.5.1',
+    } as unknown as extensionApi.CliTool);
+    expect(result).toStrictEqual(release);
+
+    expect(window.showQuickPick).toHaveBeenCalledWith([release], {
+      placeHolder: 'Select Kind version to download',
+    });
   });
 });
 

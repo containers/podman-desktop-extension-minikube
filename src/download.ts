@@ -23,11 +23,11 @@ import * as path from 'node:path';
 
 import type { Octokit } from '@octokit/rest';
 import type * as extensionApi from '@podman-desktop/api';
-import { env } from '@podman-desktop/api';
+import { env, window } from '@podman-desktop/api';
 
 import { whereBinary } from './util';
 
-export interface MinikubeGithubReleaseArtifactMetadata {
+export interface MinikubeGithubReleaseArtifactMetadata extends extensionApi.QuickPickItem {
   tag: string;
   id: number;
 }
@@ -66,6 +66,27 @@ export class MinikubeDownload {
   async getLatestVersionAsset(): Promise<MinikubeGithubReleaseArtifactMetadata> {
     const latestReleases = await this.grabLatestsReleasesMetadata();
     return latestReleases[0];
+  }
+
+  async selectVersion(cliInfo?: extensionApi.CliTool): Promise<MinikubeGithubReleaseArtifactMetadata> {
+    let releasesMetadata = await this.grabLatestsReleasesMetadata();
+
+    if (releasesMetadata.length === 0) throw new Error('cannot grab minikube releases');
+
+    // if the user already has an installed version, we remove it from the list
+    if (cliInfo) {
+      releasesMetadata = releasesMetadata.filter(release => release.tag.slice(1) !== cliInfo.version);
+    }
+
+    // Show the quickpick
+    const selectedRelease = await window.showQuickPick(releasesMetadata, {
+      placeHolder: 'Select Kind version to download',
+    });
+
+    if (!selectedRelease) {
+      throw new Error('No version selected');
+    }
+    return selectedRelease;
   }
 
   getMinikubeExtensionPath(): string {
