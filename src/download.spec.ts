@@ -23,7 +23,7 @@ import { beforeEach } from 'node:test';
 import type { Octokit } from '@octokit/rest';
 import type * as extensionApi from '@podman-desktop/api';
 import { env } from '@podman-desktop/api';
-import { afterEach, describe,expect, test, vi } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import type { MinikubeGithubReleaseArtifactMetadata } from './download';
 import { MinikubeDownload } from './download';
