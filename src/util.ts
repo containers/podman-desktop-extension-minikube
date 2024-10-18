@@ -51,7 +51,12 @@ export function getMinikubeHome(): string | undefined {
   }
 }
 
-// search if minikube is available in the path
+/**
+ * search if minikube is available in the path
+ * @param pathAddition
+ * @param installer
+ * @deprecated use {@link MinikubeDownload#findMinikube}
+ */
 export async function detectMinikube(pathAddition: string, installer: MinikubeInstaller): Promise<string> {
   try {
     await extensionApi.process.exec('minikube', ['version'], {
