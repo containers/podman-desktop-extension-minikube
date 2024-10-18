@@ -83,11 +83,10 @@ export class MinikubeDownload {
       placeHolder: 'Select Kind version to download',
     });
 
-    if (selectedRelease) {
-      return selectedRelease;
-    } else {
+    if (!selectedRelease) {
       throw new Error('No version selected');
     }
+    return selectedRelease;
   }
 
   getMinikubeExtensionPath(): string {
