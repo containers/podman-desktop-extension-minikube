@@ -61,6 +61,8 @@ vi.mock('@podman-desktop/api', () => ({
   },
   window: {
     showQuickPick: vi.fn(),
+    showErrorMessage: vi.fn(),
+    showInformationMessage: vi.fn(),
   },
 }));
 
@@ -247,6 +249,7 @@ describe('install', () => {
       id: 55,
       label: 'v1.5.2',
     };
+    vi.mocked(window.showInformationMessage).mockResolvedValue('Yes');
 
     const minikubeDownload = new MinikubeDownload(extensionContext, octokitMock);
 
@@ -262,7 +265,7 @@ describe('install', () => {
     expect(minikubeDownload.download).toHaveBeenCalledWith(release);
   });
 
-  test('install fallback to download path if install system wide failed', async () => {
+  test('install fallback to download path if user declined system wide install', async () => {
     (env.isWindows as boolean) = true;
     const release: MinikubeGithubReleaseArtifactMetadata = {
       tag: 'v1.2.3',
@@ -270,14 +273,45 @@ describe('install', () => {
       label: 'v1.5.2',
     };
 
+    // refuse system wide installed
+    vi.mocked(window.showInformationMessage).mockResolvedValue('No');
+
     const minikubeDownload = new MinikubeDownload(extensionContext, octokitMock);
 
     vi.spyOn(minikubeDownload, 'download').mockResolvedValue('/download/asset/path');
 
-    vi.mocked(processCore.exec).mockRejectedValue(new Error('random error'));
+    const file = await minikubeDownload.install(release);
+    expect(file).toBe('/download/asset/path');
+    expect(processCore.exec).not.toHaveBeenCalled();
+    expect(window.showInformationMessage).toHaveBeenCalledWith(
+      'minikube binary has been successfully downloaded.\n\nWould you like to install it system-wide for accessibility on the command line? This will require administrative privileges.',
+      'Yes',
+      'Cancel',
+    );
+  });
+
+  test('user should be notified if system-wide installed failed', async () => {
+    (env.isWindows as boolean) = true;
+    const release: MinikubeGithubReleaseArtifactMetadata = {
+      tag: 'v1.2.3',
+      id: 55,
+      label: 'v1.5.2',
+    };
+
+    // refuse system wide installed
+    vi.mocked(window.showInformationMessage).mockResolvedValue('Yes');
+    vi.mocked(processCore.exec).mockRejectedValue(new Error('Something horrible'));
+
+    const minikubeDownload = new MinikubeDownload(extensionContext, octokitMock);
+
+    vi.spyOn(minikubeDownload, 'download').mockResolvedValue('/download/asset/path');
 
     const file = await minikubeDownload.install(release);
     expect(file).toBe('/download/asset/path');
+    expect(processCore.exec).toHaveBeenCalled();
+    expect(window.showErrorMessage).toHaveBeenCalledWith(
+      'Something went wrong while trying to install minikube system-wide: Error: Something horrible',
+    );
   });
 });
 

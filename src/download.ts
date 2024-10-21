@@ -113,12 +113,28 @@ export class MinikubeDownload {
     }
   }
 
+  /**
+   * Given a {@link MinikubeGithubReleaseArtifactMetadata} it will be downloaded to the
+   * extension folder, then on user approval tried to be installed system-wide
+   * @param release the release to download and install
+   */
   async install(release: MinikubeGithubReleaseArtifactMetadata): Promise<string> {
     let destFile = await this.download(release);
+
+    const result = await window.showInformationMessage(
+      `minikube binary has been successfully downloaded.\n\nWould you like to install it system-wide for accessibility on the command line? This will require administrative privileges.`,
+      'Yes',
+      'Cancel',
+    );
+
+    if (result !== 'Yes') return destFile;
+
     try {
       destFile = await installBinaryToSystem(destFile, 'minikube');
     } catch (err: unknown) {
-      console.debug('Cannot install system wide', err);
+      console.error(err);
+      await window.showErrorMessage(`Something went wrong while trying to install minikube system-wide: ${err}`);
+      // we yet return the extension-folder path to still allow the binary downloaded to be registered by the extension
     }
     return destFile;
   }
