@@ -291,7 +291,10 @@ describe('install', () => {
   });
 
   test('user should be notified if system-wide installed failed', async () => {
-    (env.isWindows as boolean) = true;
+    Object.defineProperty(process, 'platform', {
+      value: 'linux',
+    });
+    (env.isLinux as boolean) = true;
     const release: MinikubeGithubReleaseArtifactMetadata = {
       tag: 'v1.2.3',
       id: 55,
@@ -307,10 +310,11 @@ describe('install', () => {
     vi.spyOn(minikubeDownload, 'download').mockResolvedValue('/download/asset/path');
 
     const file = await minikubeDownload.install(release);
+
     expect(file).toBe('/download/asset/path');
     expect(processCore.exec).toHaveBeenCalled();
     expect(window.showErrorMessage).toHaveBeenCalledWith(
-      'Something went wrong while trying to install minikube system-wide: Error: Something horrible',
+      'Something went wrong while trying to install minikube system-wide: Error: Error making binary executable: Error: Something horrible',
     );
   });
 });
