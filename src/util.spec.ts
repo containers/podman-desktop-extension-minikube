@@ -31,6 +31,7 @@ import {
   detectMinikube,
   getMinikubeHome,
   getMinikubePath,
+  getMinikubeVersion,
   installBinaryToSystem,
   whereBinary,
 } from './util';
@@ -377,5 +378,28 @@ describe('deleteFileAsAdmin', () => {
     expect(extensionApi.process.exec).toHaveBeenCalledWith('rm', ['/dummy/minikube'], {
       isAdmin: true,
     });
+  });
+});
+
+describe('getMinikubeVersion', () => {
+  test('error should propagate', async () => {
+    vi.mocked(extensionApi.process.exec).mockRejectedValue(new Error('something wrong'));
+
+    await expect(async () => {
+      await getMinikubeVersion('/dummy/minikube');
+    }).rejects.toThrowError('something wrong');
+
+    expect(extensionApi.process.exec).toHaveBeenCalledWith('/dummy/minikube', ['version', '--short']);
+  });
+
+  test('should format the version output', async () => {
+    vi.mocked(extensionApi.process.exec).mockResolvedValue({
+      stdout: 'v1.5.3',
+      stderr: '',
+      command: '',
+    });
+
+    const result = await getMinikubeVersion('/dummy/minikube');
+    expect(result).toBe('1.5.3');
   });
 });
