@@ -25,8 +25,8 @@ importers:
         specifier: ^1.2.1
         version: 1.2.1(eslint@9.13.0)
       '@podman-desktop/api':
-        specifier: ^1.13.2
-        version: 1.13.2
+        specifier: ^1.13.3
+        version: 1.13.3
       '@typescript-eslint/eslint-plugin':
         specifier: ^8.11.0
         version: 8.11.0(@typescript-eslint/parser@8.11.0(eslint@9.13.0)(typescript@5.6.3))(eslint@9.13.0)(typescript@5.6.3)
@@ -1075,8 +1075,8 @@ packages:
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
     engines: {node: '>=14'}
 
-  '@podman-desktop/api@1.13.2':
-    resolution: {integrity: sha512-tMLHRSCkFguSu0gA+4OZgEjDH6Um1iAhNAeq4zWfeVz/LiPi34BGgQKh4xMHibLkkkA0w7e7hHIIlFWw+3uF5A==}
+  '@podman-desktop/api@1.13.3':
+    resolution: {integrity: sha512-pPFnEgONEYk7iI3GD+Tn6trXPckamkbzYjPfoIMVoHbYwckZz3Wjic9Wzp3FDxseINSVnZboEbhMyakBS5rpaQ==}
 
   '@rollup/rollup-android-arm-eabi@4.21.0':
     resolution: {integrity: sha512-WTWD8PfoSAJ+qL87lE7votj3syLavxunWhzCnx3XFxFiI/BA/r3X7MUM8dVrH8rb2r4AiO8jJsr3ZjdaftmnfA==}
@@ -4218,7 +4218,7 @@ snapshots:
   '@pkgjs/parseargs@0.11.0':
     optional: true
 
-  '@podman-desktop/api@1.13.2': {}
+  '@podman-desktop/api@1.13.3': {}
 
   '@rollup/rollup-android-arm-eabi@4.21.0':
     optional: true
