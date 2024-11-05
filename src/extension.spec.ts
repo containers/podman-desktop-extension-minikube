@@ -19,7 +19,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import * as podmanDesktopApi from '@podman-desktop/api';
-import { afterEach,beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { MinikubeDownload } from './download';
 import { activate, deactivate, refreshMinikubeClustersOnProviderConnectionUpdate } from './extension';
