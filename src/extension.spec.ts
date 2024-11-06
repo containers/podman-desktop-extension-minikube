@@ -90,6 +90,7 @@ const minikubeDownloadMock: MinikubeDownload = {
   findMinikube: vi.fn(),
   getLatestVersionAsset: vi.fn(),
   install: vi.fn(),
+  getMinikubeExtensionPath: vi.fn(),
 } as unknown as MinikubeDownload;
 
 beforeEach(() => {
@@ -97,6 +98,7 @@ beforeEach(() => {
   vi.resetAllMocks();
 
   vi.mocked(MinikubeDownload).mockReturnValue(minikubeDownloadMock);
+  vi.mocked(minikubeDownloadMock.getMinikubeExtensionPath).mockReturnValue('/home/path/minikube');
   vi.mocked(podmanDesktopApi.cli.createCliTool).mockReturnValue(cliToolMock);
   vi.mocked(podmanDesktopApi.provider.createProvider).mockReturnValue(providerMock);
   vi.mocked(podmanDesktopApi.containerEngine.listContainers).mockResolvedValue([]);
@@ -198,6 +200,27 @@ describe('minikube cli tool', () => {
     });
   });
 
+  test('findMinikube in external path should specify installationSource', async () => {
+    // mock existing minikube
+    vi.mocked(minikubeDownloadMock.findMinikube).mockResolvedValue('/external/minikube');
+    vi.mocked(getMinikubeVersion).mockResolvedValue('5.66.7');
+
+    // activate
+    await activate({ subscriptions: [] } as unknown as podmanDesktopApi.ExtensionContext);
+
+    // 1. should check for existing minikube executable
+    expect(minikubeDownloadMock.findMinikube).toHaveBeenCalledOnce();
+
+    // 2. extension should register a cli tool with installationSource external
+    expect(podmanDesktopApi.cli.createCliTool).toHaveBeenCalledWith(
+      expect.objectContaining({
+        path: '/external/minikube',
+        version: '5.66.7',
+        installationSource: 'external',
+      }),
+    );
+  });
+
   test('existing minikube should cli tool with path and version defined', async () => {
     // mock existing minikube
     vi.mocked(minikubeDownloadMock.findMinikube).mockResolvedValue('/home/path/minikube');
@@ -211,6 +234,7 @@ describe('minikube cli tool', () => {
       expect.objectContaining({
         path: '/home/path/minikube',
         version: '5.66.7',
+        installationSource: 'extension',
       }),
     );
   });
@@ -237,7 +261,7 @@ describe('minikube cli tool', () => {
     expect(providerMock.dispose).toHaveBeenCalled();
   });
 
-  test('onDidUpdateVersion event should dispose provider', async () => {
+  test('onDidUpdateVersion event should create provider', async () => {
     // mock no existing minikube
     vi.mocked(minikubeDownloadMock.findMinikube).mockResolvedValue(undefined);
 
@@ -249,7 +273,7 @@ describe('minikube cli tool', () => {
 
     expect(cliToolMock.onDidUpdateVersion).toHaveBeenCalledOnce();
 
-    // call the on uninstall listener
+    // call the on onDidUpdateVersion listener
     vi.mocked(cliToolMock.onDidUpdateVersion).mock.calls[0][0]('1.55.6');
 
     expect(podmanDesktopApi.provider.createProvider).toHaveBeenCalled();

@@ -19,7 +19,7 @@
 import * as fs from 'node:fs';
 
 import { Octokit } from '@octokit/rest';
-import type { CancellationToken, Logger } from '@podman-desktop/api';
+import type { CancellationToken, CliToolInstallationSource, Logger } from '@podman-desktop/api';
 import * as extensionApi from '@podman-desktop/api';
 
 import { createCluster } from './create-cluster';
@@ -268,6 +268,16 @@ export async function activate(extensionContext: extensionApi.ExtensionContext):
     provider = await createProvider(extensionContext, telemetryLogger);
   }
 
+  // check if the minikube is installed by the extension or external
+  let installationSource: CliToolInstallationSource | undefined;
+  if (minikubeCli) {
+    installationSource = [getBinarySystemPath('minikube'), minikubeDownload.getMinikubeExtensionPath()].includes(
+      minikubeCli,
+    )
+      ? 'extension'
+      : 'external';
+  }
+
   // Register the CLI tool so it appears in the preferences page
   minikubeCliTool = extensionApi.cli.createCliTool({
     name: minikubeCliName,
@@ -278,6 +288,7 @@ export async function activate(extensionContext: extensionApi.ExtensionContext):
     },
     version: version,
     path: minikubeCli,
+    installationSource: installationSource,
   });
 
   // add the cli tool to subscriptions
@@ -288,6 +299,11 @@ export async function activate(extensionContext: extensionApi.ExtensionContext):
     if (provider) return;
 
     provider = await createProvider(extensionContext, telemetryLogger);
+
+    // check for update
+    checkUpdate(minikubeDownload).catch((error: unknown) => {
+      console.error('Error checking for minikube update', error);
+    });
   });
 
   // subscribe to uninstall events
@@ -334,23 +350,25 @@ export async function activate(extensionContext: extensionApi.ExtensionContext):
   // Push the CLI tool as well (but it will do it postActivation so it does not block the activate() function)
   // Post activation
   setTimeout(() => {
-    postActivate(minikubeDownload).catch((error: unknown) => {
-      console.error('Error activating extension', error);
+    checkUpdate(minikubeDownload).catch((error: unknown) => {
+      console.error('Error checking for minikube update', error);
     });
   }, 0);
 }
 
-// Activate the CLI tool (check version, etc) and register the CLi so it does not block activation.
-async function postActivate(minikubeDownload: MinikubeDownload): Promise<void> {
+// check for update, and register it
+async function checkUpdate(minikubeDownload: MinikubeDownload): Promise<void> {
+  // if the tool is not register nor available - no need to check for update
+  if (!minikubeCliTool || !minikubeCli) return;
+
   let binaryVersion = '';
 
   // Retrieve the version of the binary by running exec with --short
   try {
-    if (minikubeCli) {
-      binaryVersion = await getMinikubeVersion(minikubeCli);
-    }
-  } catch (e) {
-    console.error(`Error getting compose version: ${e}`);
+    binaryVersion = await getMinikubeVersion(minikubeCli);
+  } catch (err: unknown) {
+    console.error('Something went wrong while trying to get minikube version', err);
+    return; // if we are not able to check for version, abort
   }
 
   // check if there is a new version to be installed and register the updater
