@@ -22,8 +22,6 @@ import * as path from 'node:path';
 
 import * as extensionApi from '@podman-desktop/api';
 
-import type { MinikubeInstaller } from './minikube-installer';
-
 const macosExtraPath = '/usr/local/bin:/opt/homebrew/bin:/opt/local/bin:/opt/podman/bin';
 
 export function getMinikubePath(): string {
@@ -49,44 +47,6 @@ export function getMinikubeHome(): string | undefined {
   } else {
     return minikubeHome;
   }
-}
-
-/**
- * search if minikube is available in the path
- * @param pathAddition
- * @param installer
- * @deprecated use {@link MinikubeDownload#findMinikube}
- */
-export async function detectMinikube(pathAddition: string, installer: MinikubeInstaller): Promise<string> {
-  try {
-    await extensionApi.process.exec('minikube', ['version'], {
-      env: {
-        PATH: getMinikubePath(),
-        MINIKUBE_HOME: getMinikubeHome(),
-      },
-    });
-    return 'minikube';
-  } catch (e) {
-    // ignore and try another way
-  }
-
-  const assetInfo = await installer.getAssetInfo();
-  if (assetInfo) {
-    try {
-      await extensionApi.process.exec(assetInfo.name, ['version'], {
-        env: {
-          PATH: getMinikubePath().concat(path.delimiter).concat(pathAddition),
-          MINIKUBE_HOME: getMinikubeHome(),
-        },
-      });
-      return pathAddition
-        .concat(path.sep)
-        .concat(extensionApi.env.isWindows ? assetInfo.name + '.exe' : assetInfo.name);
-    } catch (e) {
-      console.error(e);
-    }
-  }
-  return undefined;
 }
 
 export function getBinarySystemPath(binaryName: string): string {
