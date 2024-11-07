@@ -22,8 +22,8 @@ Want to help develop and contribute to the Minikube extension?
 You can use `pnpm watch --extension-folder` from the Podman Desktop directory to automatically rebuild and test the Minikube extension:
 
 ```sh
-git clone https://github.com/containers/podman-desktop
-git clone https://github.com/containers/podman-desktop-extension-minikube
+git clone https://github.com/podman-desktop/podman-desktop
+git clone https://github.com/podman-desktop/podman-desktop-extension-minikube
 cd podman-desktop-extension-minikube
 pnpm install
 pnpm watch
