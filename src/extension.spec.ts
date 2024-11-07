@@ -102,6 +102,7 @@ beforeEach(() => {
   vi.mocked(podmanDesktopApi.cli.createCliTool).mockReturnValue(cliToolMock);
   vi.mocked(podmanDesktopApi.provider.createProvider).mockReturnValue(providerMock);
   vi.mocked(podmanDesktopApi.containerEngine.listContainers).mockResolvedValue([]);
+  vi.mocked(podmanDesktopApi.commands.registerCommand).mockReturnValue({ dispose: vi.fn() });
 });
 
 afterEach(() => {
@@ -239,16 +240,21 @@ describe('minikube cli tool', () => {
     );
   });
 
-  test('uninstall event should dispose provider', async () => {
+  test('uninstall event should dispose provider and command', async () => {
     // mock existing minikube
     vi.mocked(minikubeDownloadMock.findMinikube).mockResolvedValue('/home/path/minikube');
     vi.mocked(getMinikubeVersion).mockResolvedValue('5.66.7');
+    const disposableMock = vi.fn();
+    vi.mocked(podmanDesktopApi.commands.registerCommand).mockReturnValue({
+      dispose: disposableMock,
+    });
 
     // activate
     await activate({ subscriptions: [] } as unknown as podmanDesktopApi.ExtensionContext);
 
     // extension should create provider
     expect(podmanDesktopApi.provider.createProvider).toHaveBeenCalledOnce();
+    expect(podmanDesktopApi.commands.registerCommand).toHaveBeenCalledOnce();
 
     expect(cliToolMock.onDidUninstall).toHaveBeenCalledOnce();
 
@@ -259,6 +265,7 @@ describe('minikube cli tool', () => {
     vi.mocked(cliToolMock.onDidUninstall).mock.calls[0][0]();
 
     expect(providerMock.dispose).toHaveBeenCalled();
+    expect(disposableMock).toHaveBeenCalled();
   });
 
   test('onDidUpdateVersion event should create provider', async () => {

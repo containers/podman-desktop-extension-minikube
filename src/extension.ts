@@ -48,6 +48,7 @@ const registeredKubernetesConnections: {
 let minikubeCli: string | undefined;
 let minikubeCliTool: extensionApi.CliTool | undefined;
 let provider: extensionApi.Provider | undefined;
+let commandDisposable: extensionApi.Disposable | undefined;
 
 const minikubeCliName = 'minikube';
 const minikubeDisplayName = 'Minikube';
@@ -218,12 +219,12 @@ async function createProvider(
 
   extensionContext.subscriptions.push(provider);
   await registerProvider(extensionContext, provider, telemetryLogger);
-  extensionContext.subscriptions.push(
-    extensionApi.commands.registerCommand(MINIKUBE_MOVE_IMAGE_COMMAND, async image => {
+  if (!commandDisposable) {
+    commandDisposable = extensionApi.commands.registerCommand(MINIKUBE_MOVE_IMAGE_COMMAND, async image => {
       telemetryLogger.logUsage('moveImage');
       await imageHandler.moveImage(image, minikubeClusters, minikubeCli);
-    }),
-  );
+    });
+  }
 
   // when containers are refreshed, update
   extensionApi.containerEngine.onEvent(async event => {
@@ -309,7 +310,9 @@ export async function activate(extensionContext: extensionApi.ExtensionContext):
   // subscribe to uninstall events
   minikubeCliTool.onDidUninstall(() => {
     provider?.dispose();
+    commandDisposable?.dispose();
     provider = undefined;
+    commandDisposable = undefined;
     minikubeCli = undefined;
   });
 
@@ -394,6 +397,8 @@ export function deactivate(): void {
   minikubeCli = undefined;
   provider?.dispose();
   provider = undefined;
+  commandDisposable?.dispose();
+  commandDisposable = undefined;
   minikubeClusters = [];
   registeredKubernetesConnections.splice(0);
 }
