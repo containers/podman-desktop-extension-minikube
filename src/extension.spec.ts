@@ -21,6 +21,7 @@
 import * as podmanDesktopApi from '@podman-desktop/api';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import type { MinikubeGithubReleaseArtifactMetadata } from './download';
 import { MinikubeDownload } from './download';
 import { activate, deactivate, refreshMinikubeClustersOnProviderConnectionUpdate } from './extension';
 import { getMinikubeVersion } from './util';
@@ -238,6 +239,30 @@ describe('minikube cli tool', () => {
         installationSource: 'extension',
       }),
     );
+  });
+
+  test('onDidUpdateVersion should check for update', async () => {
+    // mock existing minikube
+    vi.mocked(minikubeDownloadMock.findMinikube).mockResolvedValue('/home/path/minikube');
+    vi.mocked(getMinikubeVersion).mockResolvedValue('5.66.7');
+
+    // mock latest version greater than current
+    vi.mocked(minikubeDownloadMock.getLatestVersionAsset).mockResolvedValue({
+      tag: 'v5.67.0',
+    } as unknown as MinikubeGithubReleaseArtifactMetadata);
+
+    // activate
+    await activate({ subscriptions: [] } as unknown as podmanDesktopApi.ExtensionContext);
+
+    expect(cliToolMock.onDidUpdateVersion).toHaveBeenCalledOnce();
+
+    // call the on onDidUpdateVersion listener
+    await vi.mocked(cliToolMock.onDidUpdateVersion).mock.calls[0][0]('v5.66.8');
+
+    expect(cliToolMock.registerUpdate).toHaveBeenCalledWith({
+      doUpdate: expect.any(Function),
+      version: '5.67.0',
+    });
   });
 
   test('uninstall event should dispose provider and command', async () => {

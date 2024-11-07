@@ -49,6 +49,7 @@ let minikubeCli: string | undefined;
 let minikubeCliTool: extensionApi.CliTool | undefined;
 let provider: extensionApi.Provider | undefined;
 let commandDisposable: extensionApi.Disposable | undefined;
+let minikubeCliToolUpdaterDisposable: extensionApi.Disposable | undefined;
 
 const minikubeCliName = 'minikube';
 const minikubeDisplayName = 'Minikube';
@@ -297,22 +298,26 @@ export async function activate(extensionContext: extensionApi.ExtensionContext):
 
   // subscribe to update events
   minikubeCliTool.onDidUpdateVersion(async () => {
-    if (provider) return;
-
-    provider = await createProvider(extensionContext, telemetryLogger);
+    if (!provider) {
+      provider = await createProvider(extensionContext, telemetryLogger);
+    }
 
     // check for update
-    checkUpdate(minikubeDownload).catch((error: unknown) => {
-      console.error('Error checking for minikube update', error);
-    });
+    return checkUpdate(minikubeDownload);
   });
 
   // subscribe to uninstall events
   minikubeCliTool.onDidUninstall(() => {
+    // dispose registered update
+    minikubeCliToolUpdaterDisposable?.dispose();
+    minikubeCliToolUpdaterDisposable = undefined;
+    // dispose provider (do not allow to create minikube without executable)
     provider?.dispose();
-    commandDisposable?.dispose();
     provider = undefined;
+    // dispose command (do not allow to push to minikube without executable)
+    commandDisposable?.dispose();
     commandDisposable = undefined;
+    // reset cli reference
     minikubeCli = undefined;
   });
 
@@ -378,7 +383,7 @@ async function checkUpdate(minikubeDownload: MinikubeDownload): Promise<void> {
   const lastReleaseMetadata = await minikubeDownload.getLatestVersionAsset();
   const lastReleaseVersion = lastReleaseMetadata.tag.replace('v', '').trim();
   if (lastReleaseVersion !== binaryVersion) {
-    const minikubeCliToolUpdaterDisposable = minikubeCliTool.registerUpdate({
+    minikubeCliToolUpdaterDisposable = minikubeCliTool.registerUpdate({
       version: lastReleaseVersion,
       doUpdate: async () => {
         const destFile = await minikubeDownload.install(lastReleaseMetadata);
@@ -399,6 +404,8 @@ export function deactivate(): void {
   provider = undefined;
   commandDisposable?.dispose();
   commandDisposable = undefined;
+  minikubeCliToolUpdaterDisposable?.dispose();
+  minikubeCliToolUpdaterDisposable = undefined;
   minikubeClusters = [];
   registeredKubernetesConnections.splice(0);
 }
