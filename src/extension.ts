@@ -26,7 +26,7 @@ import { createCluster } from './create-cluster';
 import type { MinikubeGithubReleaseArtifactMetadata } from './download';
 import { MinikubeDownload } from './download';
 import { ImageHandler } from './image-handler';
-import { deleteFile, getBinarySystemPath, getMinikubeHome, getMinikubePath, getMinikubeVersion } from './util';
+import { deleteFile, getBinarySystemPath, getMinikubeAdditionalEnvs, getMinikubeVersion } from './util';
 
 const API_MINIKUBE_INTERNAL_API_PORT = 8443;
 
@@ -120,16 +120,9 @@ async function updateClusters(provider: extensionApi.Provider, containers: exten
     if (!item) {
       const lifecycle: extensionApi.ProviderConnectionLifecycle = {
         start: async (): Promise<void> => {
-          const env: Record<string, string> = {
-            PATH: getMinikubePath(),
-          };
-          const minikubeHome = getMinikubeHome();
-          if (minikubeHome) {
-            env['MINIKUBE_HOME'] = minikubeHome;
-          }
           try {
             await extensionApi.process.exec(minikubeCli, ['start', '--profile', cluster.name], {
-              env,
+              env: getMinikubeAdditionalEnvs(),
             });
           } catch (err) {
             console.error(err);
@@ -138,27 +131,13 @@ async function updateClusters(provider: extensionApi.Provider, containers: exten
           }
         },
         stop: async (): Promise<void> => {
-          const env: Record<string, string> = {
-            PATH: getMinikubePath(),
-          };
-          const minikubeHome = getMinikubeHome();
-          if (minikubeHome) {
-            env['MINIKUBE_HOME'] = minikubeHome;
-          }
           await extensionApi.process.exec(minikubeCli, ['stop', '--profile', cluster.name, '--keep-context-active'], {
-            env,
+            env: getMinikubeAdditionalEnvs(),
           });
         },
         delete: async (logger): Promise<void> => {
-          const env: Record<string, string> = {
-            PATH: getMinikubePath(),
-          };
-          const minikubeHome = getMinikubeHome();
-          if (minikubeHome) {
-            env['MINIKUBE_HOME'] = minikubeHome;
-          }
           await extensionApi.process.exec(minikubeCli, ['delete', '--profile', cluster.name], {
-            env,
+            env: getMinikubeAdditionalEnvs(),
             logger,
           });
         },

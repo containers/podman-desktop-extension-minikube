@@ -23,7 +23,7 @@ import type { Mock } from 'vitest';
 import { beforeEach, expect, test, vi } from 'vitest';
 
 import { ImageHandler } from './image-handler';
-import { getMinikubePath } from './util';
+import { getMinikubeAdditionalEnvs } from './util';
 
 let imageHandler: ImageHandler;
 vi.mock('@podman-desktop/api', async () => {
@@ -43,8 +43,7 @@ vi.mock('@podman-desktop/api', async () => {
 
 vi.mock('./util', async () => {
   return {
-    getMinikubePath: vi.fn(),
-    getMinikubeHome: vi.fn(),
+    getMinikubeAdditionalEnvs: vi.fn(),
   };
 });
 
@@ -115,14 +114,14 @@ test('expect cli is called with right PATH', async () => {
     (engineId: string, id: string, filename: string) => fs.promises.open(filename, 'w'),
   );
 
-  (getMinikubePath as Mock).mockReturnValue('my-custom-path');
+  vi.mocked(getMinikubeAdditionalEnvs).mockReturnValue({ PATH: 'my-custom-path' });
 
   await imageHandler.moveImage(
     { engineId: 'dummy', name: 'myimage' },
     [{ name: 'c1', engineType: 'podman', status: 'started', apiPort: 8443 }],
     undefined,
   );
-  expect(getMinikubePath).toBeCalled();
+  expect(getMinikubeAdditionalEnvs).toBeCalled();
 
   expect(extensionApi.process.exec).toBeCalledTimes(1);
   // grab the env parameter of the first call to process.Exec

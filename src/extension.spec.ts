@@ -33,8 +33,7 @@ vi.mock('./download', () => ({
 vi.mock('./util', () => ({
   deleteFile: vi.fn(),
   getBinarySystemPath: vi.fn(),
-  getMinikubeHome: vi.fn(),
-  getMinikubePath: vi.fn(),
+  getMinikubeAdditionalEnvs: vi.fn(),
   getMinikubeVersion: vi.fn(),
 }));
 

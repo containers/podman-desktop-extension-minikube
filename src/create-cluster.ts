@@ -18,7 +18,7 @@
 import type { CancellationToken, Logger, TelemetryLogger } from '@podman-desktop/api';
 import { process as processApi } from '@podman-desktop/api';
 
-import { getMinikubeHome, getMinikubePath } from './util';
+import { getMinikubeAdditionalEnvs } from './util';
 
 export async function createCluster(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -46,19 +46,9 @@ export async function createCluster(
     startArgs.push('--mount-string', mountString);
   }
 
-  const env: Record<string, string> = {
-    // update PATH to include minikube
-    PATH: getMinikubePath(),
-  };
-
-  const minikubeHome = getMinikubeHome();
-  if (minikubeHome) {
-    env['MINIKUBE_HOME'] = minikubeHome;
-  }
-
   // now execute the command to create the cluster
   try {
-    await processApi.exec(minikubeCli, startArgs, { env, logger, token });
+    await processApi.exec(minikubeCli, startArgs, { env: getMinikubeAdditionalEnvs(), logger, token });
     telemetryLogger.logUsage('createCluster', { driver, runtime });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : error;

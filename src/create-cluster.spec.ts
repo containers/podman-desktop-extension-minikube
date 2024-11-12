@@ -37,8 +37,7 @@ vi.mock('@podman-desktop/api', async () => {
 
 vi.mock('./util', async () => {
   return {
-    getMinikubePath: vi.fn(),
-    getMinikubeHome: vi.fn(),
+    getMinikubeAdditionalEnvs: vi.fn(),
   };
 });
 

@@ -27,6 +27,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
   deleteFile,
   deleteFileAsAdmin,
+  getMinikubeAdditionalEnvs,
   getMinikubeHome,
   getMinikubePath,
   getMinikubeVersion,
@@ -376,5 +377,30 @@ describe('getMinikubeVersion', () => {
 
     const result = await getMinikubeVersion('/dummy/minikube');
     expect(result).toBe('1.5.3');
+  });
+});
+
+describe('getMinikubeAdditionalEnvs', () => {
+  test('getMinikubeAdditionalEnvs should use process.env.MINIKUBE_HOME if defined', () => {
+    const existingEnvHome = '/my-existing-minikube-home';
+    const existingConfigHome = '';
+    process.env.MINIKUBE_HOME = existingEnvHome;
+
+    configGetMock.mockReturnValue(existingConfigHome);
+
+    expect(getMinikubeAdditionalEnvs()).toStrictEqual(
+      expect.objectContaining({
+        MINIKUBE_HOME: existingEnvHome,
+      }),
+    );
+  });
+
+  test('getMinikubeAdditionalEnvs should not have MINIKUBE_HOME if undefined', () => {
+    const existingConfigHome = '';
+    process.env.MINIKUBE_HOME = undefined;
+
+    configGetMock.mockReturnValue(existingConfigHome);
+
+    expect(getMinikubeAdditionalEnvs()['MINIKUBE_HOME']).toBeUndefined();
   });
 });

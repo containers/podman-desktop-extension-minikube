@@ -21,7 +21,7 @@ import * as extensionApi from '@podman-desktop/api';
 import { tmpName } from 'tmp-promise';
 
 import type { MinikubeCluster } from './extension';
-import { getMinikubeHome, getMinikubePath } from './util';
+import { getMinikubeAdditionalEnvs } from './util';
 
 type ImageInfo = { engineId: string; name?: string; tag?: string };
 
@@ -63,14 +63,6 @@ export class ImageHandler {
         name = name + ':' + image.tag;
       }
 
-      const env: Record<string, string> = {
-        PATH: getMinikubePath(),
-      };
-      const minikubeHome = getMinikubeHome();
-      if (minikubeHome) {
-        env['MINIKUBE_HOME'] = minikubeHome;
-      }
-
       try {
         // Create a temporary file to store the image
         filename = await tmpName();
@@ -80,7 +72,7 @@ export class ImageHandler {
 
         // Run the minikube image load command to push the image to the cluster
         await extensionApi.process.exec(minikubeCli, ['-p', selectedCluster.label, 'image', 'load', filename], {
-          env: env,
+          env: getMinikubeAdditionalEnvs(),
         });
 
         // Show a dialog to the user that the image was pushed
