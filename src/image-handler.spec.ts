@@ -127,7 +127,7 @@ test('expect cli is called with right PATH', async () => {
   // grab the env parameter of the first call to process.Exec
   const props = vi.mocked(extensionApi.process.exec).mock.calls[0][2];
   expect(props).to.have.property('env');
-  const env = props.env;
+  const env = props?.env;
   expect(env).to.have.property('PATH');
-  expect(env.PATH).toBe('my-custom-path');
+  expect(env?.PATH).toBe('my-custom-path');
 });
