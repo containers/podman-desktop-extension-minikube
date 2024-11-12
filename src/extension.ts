@@ -120,11 +120,16 @@ async function updateClusters(provider: extensionApi.Provider, containers: exten
     if (!item) {
       const lifecycle: extensionApi.ProviderConnectionLifecycle = {
         start: async (): Promise<void> => {
+          const env: Record<string, string> = {
+            PATH: getMinikubePath(),
+          };
+          const minikubeHome = getMinikubeHome();
+          if (minikubeHome) {
+            env['MINIKUBE_HOME'] = minikubeHome;
+          }
           try {
             await extensionApi.process.exec(minikubeCli, ['start', '--profile', cluster.name], {
-              env: {
-                PATH: getMinikubePath(),
-              },
+              env,
             });
           } catch (err) {
             console.error(err);
@@ -133,18 +138,27 @@ async function updateClusters(provider: extensionApi.Provider, containers: exten
           }
         },
         stop: async (): Promise<void> => {
+          const env: Record<string, string> = {
+            PATH: getMinikubePath(),
+          };
+          const minikubeHome = getMinikubeHome();
+          if (minikubeHome) {
+            env['MINIKUBE_HOME'] = minikubeHome;
+          }
           await extensionApi.process.exec(minikubeCli, ['stop', '--profile', cluster.name, '--keep-context-active'], {
-            env: {
-              PATH: getMinikubePath(),
-            },
+            env,
           });
         },
         delete: async (logger): Promise<void> => {
+          const env: Record<string, string> = {
+            PATH: getMinikubePath(),
+          };
+          const minikubeHome = getMinikubeHome();
+          if (minikubeHome) {
+            env['MINIKUBE_HOME'] = minikubeHome;
+          }
           await extensionApi.process.exec(minikubeCli, ['delete', '--profile', cluster.name], {
-            env: {
-              PATH: getMinikubePath(),
-              MINIKUBE_HOME: getMinikubeHome() ?? '',
-            },
+            env,
             logger,
           });
         },

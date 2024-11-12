@@ -47,9 +47,14 @@ export async function createCluster(
   }
 
   const env: Record<string, string> = {
+    // update PATH to include minikube
     PATH: getMinikubePath(),
-    MINIKUBE_HOME: getMinikubeHome() ?? '',
   };
+
+  const minikubeHome = getMinikubeHome();
+  if (minikubeHome) {
+    env['MINIKUBE_HOME'] = minikubeHome;
+  }
 
   // now execute the command to create the cluster
   try {

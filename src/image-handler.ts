@@ -65,8 +65,11 @@ export class ImageHandler {
 
       const env: Record<string, string> = {
         PATH: getMinikubePath(),
-        MINIKUBE_HOME: getMinikubeHome() ?? '',
       };
+      const minikubeHome = getMinikubeHome();
+      if (minikubeHome) {
+        env['MINIKUBE_HOME'] = minikubeHome;
+      }
 
       try {
         // Create a temporary file to store the image
