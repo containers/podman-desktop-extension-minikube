@@ -57,15 +57,17 @@ export class ImageHandler {
     if (selectedCluster) {
       let name = image.name;
       let filename: string;
-      const env = { ...process.env };
 
       // Create a name:tag string for the image
       if (image.tag) {
         name = name + ':' + image.tag;
       }
 
-      env.PATH = getMinikubePath();
-      env.MINIKUBE_HOME = getMinikubeHome();
+      const env: Record<string, string> = {
+        PATH: getMinikubePath(),
+        MINIKUBE_HOME: getMinikubeHome() ?? '',
+      };
+
       try {
         // Create a temporary file to store the image
         filename = await tmpName();

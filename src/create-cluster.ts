@@ -34,8 +34,6 @@ export async function createCluster(
   const baseImage = params['minikube.cluster.creation.base-image'];
   const mountString = params['minikube.cluster.creation.mount-string'];
 
-  const env = { ...process.env };
-
   const startArgs = ['start', '--profile', clusterName, '--driver', driver, '--container-runtime', runtime];
 
   // add base image parameter
@@ -48,10 +46,10 @@ export async function createCluster(
     startArgs.push('--mount-string', mountString);
   }
 
-  // update PATH to include minikube
-  env.PATH = getMinikubePath();
-
-  env.MINIKUBE_HOME = getMinikubeHome();
+  const env: Record<string, string> = {
+    PATH: getMinikubePath(),
+    MINIKUBE_HOME: getMinikubeHome() ?? '',
+  };
 
   // now execute the command to create the cluster
   try {

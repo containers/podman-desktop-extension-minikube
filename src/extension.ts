@@ -121,9 +121,11 @@ async function updateClusters(provider: extensionApi.Provider, containers: exten
       const lifecycle: extensionApi.ProviderConnectionLifecycle = {
         start: async (): Promise<void> => {
           try {
-            const env = { ...process.env };
-            env.PATH = getMinikubePath();
-            await extensionApi.process.exec(minikubeCli, ['start', '--profile', cluster.name], { env });
+            await extensionApi.process.exec(minikubeCli, ['start', '--profile', cluster.name], {
+              env: {
+                PATH: getMinikubePath(),
+              },
+            });
           } catch (err) {
             console.error(err);
             // propagate the error
@@ -131,17 +133,20 @@ async function updateClusters(provider: extensionApi.Provider, containers: exten
           }
         },
         stop: async (): Promise<void> => {
-          const env = { ...process.env };
-          env.PATH = getMinikubePath();
           await extensionApi.process.exec(minikubeCli, ['stop', '--profile', cluster.name, '--keep-context-active'], {
-            env,
+            env: {
+              PATH: getMinikubePath(),
+            },
           });
         },
         delete: async (logger): Promise<void> => {
-          const env = { ...process.env };
-          env.PATH = getMinikubePath();
-          env.MINIKUBE_HOME = getMinikubeHome();
-          await extensionApi.process.exec(minikubeCli, ['delete', '--profile', cluster.name], { env, logger });
+          await extensionApi.process.exec(minikubeCli, ['delete', '--profile', cluster.name], {
+            env: {
+              PATH: getMinikubePath(),
+              MINIKUBE_HOME: getMinikubeHome() ?? '',
+            },
+            logger,
+          });
         },
       };
       // create a new connection
