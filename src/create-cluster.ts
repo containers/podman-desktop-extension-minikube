@@ -23,7 +23,7 @@ import { getMinikubeAdditionalEnvs } from './util';
 export async function createCluster(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   params: { [key: string]: any },
-  logger: Logger,
+  logger: Logger | undefined,
   minikubeCli: string,
   telemetryLogger: TelemetryLogger,
   token?: CancellationToken,
@@ -50,7 +50,7 @@ export async function createCluster(
   try {
     await processApi.exec(minikubeCli, startArgs, { env: getMinikubeAdditionalEnvs(), logger, token });
     telemetryLogger.logUsage('createCluster', { driver, runtime });
-  } catch (error) {
+  } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : error;
     telemetryLogger.logError('createCluster', {
       driver,

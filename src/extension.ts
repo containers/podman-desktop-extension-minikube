@@ -66,8 +66,10 @@ async function registerProvider(
 ): Promise<void> {
   const disposable = provider.setKubernetesProviderConnectionFactory({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    create: (params: { [key: string]: any }, logger?: Logger, token?: CancellationToken) =>
-      createCluster(params, logger, minikubeCli, telemetryLogger, token),
+    create: (params: { [key: string]: any }, logger?: Logger, token?: CancellationToken) => {
+      if (!minikubeCli) throw new Error('minikube executable cannot be found');
+      return createCluster(params, logger, minikubeCli, telemetryLogger, token);
+    },
     creationDisplayName: 'Minikube cluster',
   });
   extensionContext.subscriptions.push(disposable);
@@ -78,7 +80,10 @@ async function registerProvider(
 }
 
 // search for clusters
-async function updateClusters(provider: extensionApi.Provider, containers: extensionApi.ContainerInfo[]): void {
+async function updateClusters(
+  provider: extensionApi.Provider,
+  containers: extensionApi.ContainerInfo[],
+): Promise<void> {
   const minikubeContainers = containers.map(container => {
     const clusterName = container.Labels['name.minikube.sigs.k8s.io'];
     const clusterStatus = container.State;
@@ -114,12 +119,13 @@ async function updateClusters(provider: extensionApi.Provider, containers: exten
 
   minikubeContainers.forEach(cluster => {
     const item = registeredKubernetesConnections.find(item => item.connection.name === cluster.name);
-    const status = (): string => {
+    const status = (): 'started' | 'stopped' => {
       return cluster.status;
     };
     if (!item) {
       const lifecycle: extensionApi.ProviderConnectionLifecycle = {
         start: async (): Promise<void> => {
+          if (!minikubeCli) throw new Error('minikube executable cannot be found');
           try {
             await extensionApi.process.exec(minikubeCli, ['start', '--profile', cluster.name], {
               env: getMinikubeAdditionalEnvs(),
@@ -131,11 +137,13 @@ async function updateClusters(provider: extensionApi.Provider, containers: exten
           }
         },
         stop: async (): Promise<void> => {
+          if (!minikubeCli) throw new Error('minikube executable cannot be found');
           await extensionApi.process.exec(minikubeCli, ['stop', '--profile', cluster.name, '--keep-context-active'], {
             env: getMinikubeAdditionalEnvs(),
           });
         },
         delete: async (logger): Promise<void> => {
+          if (!minikubeCli) throw new Error('minikube executable cannot be found');
           await extensionApi.process.exec(minikubeCli, ['delete', '--profile', cluster.name], {
             env: getMinikubeAdditionalEnvs(),
             logger,
@@ -220,6 +228,7 @@ async function createProvider(
   await registerProvider(extensionContext, provider, telemetryLogger);
   if (!commandDisposable) {
     commandDisposable = extensionApi.commands.registerCommand(MINIKUBE_MOVE_IMAGE_COMMAND, async image => {
+      if (!minikubeCli) throw new Error('minikube executable cannot be found');
       telemetryLogger.logUsage('moveImage');
       await imageHandler.moveImage(image, minikubeClusters, minikubeCli);
     });

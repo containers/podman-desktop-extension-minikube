@@ -126,6 +126,10 @@ test('check we received notifications ', async () => {
 });
 
 test('verify that the minikube cli is used to start/stop the minikube container', async () => {
+  // mock existing minikube
+  vi.mocked(minikubeDownloadMock.findMinikube).mockResolvedValue('/external/minikube');
+  vi.mocked(getMinikubeVersion).mockResolvedValue('5.66.7');
+
   const onDidUpdateContainerConnectionMock = vi.fn();
   (podmanDesktopApi.provider as any).onDidUpdateContainerConnection = onDidUpdateContainerConnectionMock;
 
@@ -155,18 +159,22 @@ test('verify that the minikube cli is used to start/stop the minikube container'
       }),
   } as unknown as podmanDesktopApi.Provider;
   const mockExec = vi.spyOn(podmanDesktopApi.process, 'exec');
+
   refreshMinikubeClustersOnProviderConnectionUpdate(fakeProvider);
+
+  // activate to get minikube cli defined properly
+  await activate({ subscriptions: [] } as unknown as podmanDesktopApi.ExtensionContext);
 
   await vi.waitUntil(() => connections.length > 0, { timeout: 5000 });
 
   await connections[0].lifecycle?.start?.({} as unknown as podmanDesktopApi.LifecycleContext);
 
-  expect(mockExec).toBeCalledWith(undefined, ['start', '--profile', 'minikube'], expect.any(Object));
+  expect(mockExec).toBeCalledWith('/external/minikube', ['start', '--profile', 'minikube'], expect.any(Object));
 
   await connections[0].lifecycle?.stop?.({} as unknown as podmanDesktopApi.LifecycleContext);
 
   expect(mockExec).toBeCalledWith(
-    undefined,
+    '/external/minikube',
     ['stop', '--profile', 'minikube', '--keep-context-active'],
     expect.any(Object),
   );

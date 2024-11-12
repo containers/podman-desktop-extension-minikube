@@ -36,7 +36,7 @@ export class ImageHandler {
 
     // Retrieve all the minikube clusters available.
     const clusters = minikubeClusters.filter(cluster => cluster.status === 'started');
-    let selectedCluster: { label: string; engineType: string };
+    let selectedCluster: { label: string; engineType: string } | undefined;
 
     // Throw an error if there is no clusters,
     // but if there are multiple ones, prompt the user to select one
@@ -56,7 +56,7 @@ export class ImageHandler {
     // Only proceed if a cluster was selected
     if (selectedCluster) {
       let name = image.name;
-      let filename: string;
+      let filename: string | undefined;
 
       // Create a name:tag string for the image
       if (image.tag) {
