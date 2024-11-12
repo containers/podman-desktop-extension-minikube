@@ -75,7 +75,8 @@
     "format:fix": "prettier --write \"src/**/*.ts\"",
     "lint:check": "eslint .",
     "lint:fix": "eslint . --fix",
-    "watch": "vite build -w"
+    "watch": "vite build -w",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@octokit/rest": "^21.0.2",

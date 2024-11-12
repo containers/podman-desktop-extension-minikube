@@ -48,6 +48,9 @@ jobs:
       - name: Execute pnpm
         run: pnpm install --frozen-lockfile
 
+      - name: Run typecheck
+        run: pnpm typecheck
+
         # skip formatter on windows
       - name: Run formatter
         if: ${{ matrix.os=='ubuntu-22.04' || matrix.os=='macos-14' }}
