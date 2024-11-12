@@ -26,7 +26,7 @@ import { createCluster } from './create-cluster';
 import type { MinikubeGithubReleaseArtifactMetadata } from './download';
 import { MinikubeDownload } from './download';
 import { ImageHandler } from './image-handler';
-import { deleteFile, getBinarySystemPath, getMinikubeHome, getMinikubePath, getMinikubeVersion } from './util';
+import { deleteFile, getBinarySystemPath, getMinikubeAdditionalEnvs, getMinikubeVersion } from './util';
 
 const API_MINIKUBE_INTERNAL_API_PORT = 8443;
 
@@ -121,9 +121,9 @@ async function updateClusters(provider: extensionApi.Provider, containers: exten
       const lifecycle: extensionApi.ProviderConnectionLifecycle = {
         start: async (): Promise<void> => {
           try {
-            const env = { ...process.env };
-            env.PATH = getMinikubePath();
-            await extensionApi.process.exec(minikubeCli, ['start', '--profile', cluster.name], { env });
+            await extensionApi.process.exec(minikubeCli, ['start', '--profile', cluster.name], {
+              env: getMinikubeAdditionalEnvs(),
+            });
           } catch (err) {
             console.error(err);
             // propagate the error
@@ -131,17 +131,15 @@ async function updateClusters(provider: extensionApi.Provider, containers: exten
           }
         },
         stop: async (): Promise<void> => {
-          const env = { ...process.env };
-          env.PATH = getMinikubePath();
           await extensionApi.process.exec(minikubeCli, ['stop', '--profile', cluster.name, '--keep-context-active'], {
-            env,
+            env: getMinikubeAdditionalEnvs(),
           });
         },
         delete: async (logger): Promise<void> => {
-          const env = { ...process.env };
-          env.PATH = getMinikubePath();
-          env.MINIKUBE_HOME = getMinikubeHome();
-          await extensionApi.process.exec(minikubeCli, ['delete', '--profile', cluster.name], { env, logger });
+          await extensionApi.process.exec(minikubeCli, ['delete', '--profile', cluster.name], {
+            env: getMinikubeAdditionalEnvs(),
+            logger,
+          });
         },
       };
       // create a new connection

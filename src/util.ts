@@ -33,8 +33,19 @@ export function getMinikubePath(): string {
       return env.PATH.concat(':').concat(macosExtraPath);
     }
   } else {
-    return env.PATH;
+    return env.PATH ?? '';
   }
+}
+
+export function getMinikubeAdditionalEnvs(): Record<string, string> {
+  const env: Record<string, string> = {
+    PATH: getMinikubePath(),
+  };
+  const minikubeHome = getMinikubeHome();
+  if (minikubeHome) {
+    env['MINIKUBE_HOME'] = minikubeHome;
+  }
+  return env;
 }
 
 export function getMinikubeHome(): string | undefined {
