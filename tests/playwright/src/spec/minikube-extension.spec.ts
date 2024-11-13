@@ -1,7 +1,6 @@
 import { 
     expect as playExpect, 
     ExtensionsPage,  
-    ResourcesPage, 
     test, 
     waitForPodmanMachineStartup, 
 } from '@podman-desktop/tests-playwright';
@@ -54,7 +53,7 @@ test.describe.serial('Podman Desktop Minikube Extension Tests', () => {
         await playExpect(minikubeDetails.tabContent).toBeVisible();
     });
 
-    test('Ensure Minikube extension can be enabled and disabled', async ({ navigationBar }) => {
+    test('Ensure Minikube extension can be disabled and enabled', async ({ navigationBar }) => {
         await navigationBar.openExtensions();
         await playExpect(extensionsPage.header).toBeVisible();
 
