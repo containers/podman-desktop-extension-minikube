@@ -43,6 +43,7 @@ const compat = new FlatCompat({
 
 const TYPESCRIPT_PROJECTS = [
   './tsconfig.json',
+  './tests/playwright/tsconfig.json',
 ];
 
 export default [
