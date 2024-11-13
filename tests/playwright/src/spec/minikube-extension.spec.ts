@@ -5,7 +5,6 @@ import {
     waitForPodmanMachineStartup, 
 } from '@podman-desktop/tests-playwright';
 
-const RESOURCE_NAME: string = 'minikube';
 const EXTENSION_IMAGE: string = 'ghcr.io/podman-desktop/podman-desktop-extension-minikube:nightly';
 const EXTENSION_NAME: string = 'minikube';
 const EXTENSION_LABEL: string = 'podman-desktop.minikube';
