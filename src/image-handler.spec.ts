@@ -73,7 +73,7 @@ test('expect image name to be given', async () => {
   await imageHandler.moveImage(
     { engineId: 'dummy', name: 'myimage' },
     [{ name: 'c1', engineType: 'podman', status: 'started', apiPort: 8443 }],
-    undefined,
+    '/tmp/minikube',
   );
   expect(extensionApi.containerEngine.saveImage).toBeCalledWith('dummy', 'myimage', expect.anything());
 });
@@ -88,7 +88,7 @@ test('expect getting showInformationMessage when image is pushed', async () => {
   await imageHandler.moveImage(
     { engineId: 'dummy', name: 'myimage' },
     [{ name: 'c1', engineType: 'podman', status: 'started', apiPort: 8443 }],
-    undefined,
+    '/tmp/minikube',
   );
   expect(extensionApi.window.showInformationMessage).toBeCalledWith('Image myimage pushed to minikube cluster: c1');
 });
@@ -103,7 +103,7 @@ test('expect image name and tag to be given', async () => {
   await imageHandler.moveImage(
     { engineId: 'dummy', name: 'myimage', tag: '1.0' },
     [{ name: 'c1', engineType: 'podman', status: 'started', apiPort: 8443 }],
-    undefined,
+    '/tmp/minikube',
   );
   expect(extensionApi.containerEngine.saveImage).toBeCalledWith('dummy', 'myimage:1.0', expect.anything());
 });
@@ -119,7 +119,7 @@ test('expect cli is called with right PATH', async () => {
   await imageHandler.moveImage(
     { engineId: 'dummy', name: 'myimage' },
     [{ name: 'c1', engineType: 'podman', status: 'started', apiPort: 8443 }],
-    undefined,
+    '/tmp/minikube',
   );
   expect(getMinikubeAdditionalEnvs).toBeCalled();
 
@@ -127,7 +127,7 @@ test('expect cli is called with right PATH', async () => {
   // grab the env parameter of the first call to process.Exec
   const props = vi.mocked(extensionApi.process.exec).mock.calls[0][2];
   expect(props).to.have.property('env');
-  const env = props.env;
+  const env = props?.env;
   expect(env).to.have.property('PATH');
-  expect(env.PATH).toBe('my-custom-path');
+  expect(env?.PATH).toBe('my-custom-path');
 });
