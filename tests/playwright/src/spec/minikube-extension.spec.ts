@@ -90,6 +90,7 @@ test.describe.serial('Podman Desktop Minikube Extension Tests', () => {
         await playExpect.poll(async () => resourcesPage.resourceCardIsVisible(EXTENSION_NAME)).toBeFalsy();
 
         await navigationBar.openExtensions();
+        await navigationBar.openSettings();
         await minikubeExtension.enableExtension();
         await playExpect(minikubeExtension.disableButton).toBeEnabled();
         await navigationBar.openSettings();
