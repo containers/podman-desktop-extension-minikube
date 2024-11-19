@@ -17,9 +17,12 @@
  ***********************************************************************/
 
 import { 
+    ensureCliInstalled,
     expect as playExpect, 
     ExtensionsPage,  
-    test,  
+    isLinux,
+    ResourcesPage,  
+    test,
 } from '@podman-desktop/tests-playwright';
 
 const EXTENSION_IMAGE: string = 'ghcr.io/podman-desktop/podman-desktop-extension-minikube:nightly';
@@ -68,16 +71,29 @@ test.describe.serial('Podman Desktop Minikube Extension Tests', () => {
         await playExpect(minikubeDetails.tabContent).toBeVisible();
     });
 
-    test('Ensure Minikube extension can be disabled and enabled', async ({ navigationBar }) => {
+    test('Install Minikube CLI', async ({ navigationBar, page }) => {
+        test.skip(isLinux && !!process.env.GITHUB_ACTIONS);
+        const settingsBar = await navigationBar.openSettings();
+        await settingsBar.cliToolsTab.click();
+        await ensureCliInstalled(page, 'Minikube');
+    });
+
+    test('Ensure Minikube extension can be disabled and enabled', async ({ navigationBar, page }) => {
         await navigationBar.openExtensions();
         await playExpect(extensionsPage.header).toBeVisible();
 
         const minikubeExtension = await extensionsPage.getInstalledExtension(EXTENSION_NAME, EXTENSION_LABEL);
         await minikubeExtension.disableExtension();
         await playExpect(minikubeExtension.enableButton).toBeEnabled();
+        await navigationBar.openSettings();
+        const resourcesPage = new ResourcesPage(page);
+        await playExpect.poll(async () => resourcesPage.resourceCardIsVisible(EXTENSION_NAME)).toBeFalsy();
 
+        await navigationBar.openExtensions();
         await minikubeExtension.enableExtension();
         await playExpect(minikubeExtension.disableButton).toBeEnabled();
+        await navigationBar.openSettings();
+        await playExpect.poll(async () => resourcesPage.resourceCardIsVisible(EXTENSION_NAME)).toBeTruthy();
     });
 
     test('Uninstall Minikube extension', async ({ navigationBar }) => {
