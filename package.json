@@ -10,7 +10,7 @@
   "engines": {
     "podman-desktop": ">=1.10.0"
   },
-  "main": "./dist/extension.js",
+  "main": "./dist/extension.cjs",
   "contributes": {
     "configuration": {
       "title": "Minikube",
