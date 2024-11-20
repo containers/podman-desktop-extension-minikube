@@ -365,7 +365,7 @@ describe('getMinikubeVersion', () => {
       await getMinikubeVersion('/dummy/minikube');
     }).rejects.toThrowError('something wrong');
 
-    expect(extensionApi.process.exec).toHaveBeenCalledWith('/dummy/minikube', ['version', '--short']);
+    expect(extensionApi.process.exec).toHaveBeenCalledWith('/dummy/minikube', ['version', '--short'], expect.anything());
   });
 
   test('should format the version output', async () => {
@@ -377,6 +377,27 @@ describe('getMinikubeVersion', () => {
 
     const result = await getMinikubeVersion('/dummy/minikube');
     expect(result).toBe('1.5.3');
+  });
+
+  test('should use the additional envs', async () => {
+    const existingEnvHome = '/my-existing-minikube-home';
+    const existingConfigHome = '';
+    process.env.MINIKUBE_HOME = existingEnvHome;
+
+    configGetMock.mockReturnValue(existingConfigHome);
+
+    vi.mocked(extensionApi.process.exec).mockResolvedValue({
+      stdout: 'v1.5.3',
+      stderr: '',
+      command: '',
+    });
+
+    await getMinikubeVersion('/dummy/minikube');
+    expect(extensionApi.process.exec).toHaveBeenCalledWith('/dummy/minikube', ['version', '--short'], {
+      env: expect.objectContaining({
+        MINIKUBE_HOME: existingEnvHome,
+      }),
+    });
   });
 });
 
