@@ -45,6 +45,10 @@ export function getMinikubeAdditionalEnvs(): Record<string, string> {
   if (minikubeHome) {
     env['MINIKUBE_HOME'] = minikubeHome;
   }
+  const kubeconfig = getKubeConfig();
+  if (kubeconfig) {
+    env['KUBECONFIG'] = kubeconfig;
+  }
   return env;
 }
 
@@ -57,6 +61,18 @@ export function getMinikubeHome(): string | undefined {
     return env.MINIKUBE_HOME;
   } else {
     return minikubeHome;
+  }
+}
+
+export function getKubeConfig(): string | undefined {
+  const kubernetesConfiguration = extensionApi.configuration.getConfiguration('kubernetes');
+  const kubeConfig = kubernetesConfiguration.get<string>('Kubeconfig');
+  // Check env if configuration is not applied in UI
+  if (!kubeConfig) {
+    const env = process.env;
+    return env.KUBECONFIG;
+  } else {
+    return kubeConfig;
   }
 }
 

@@ -27,6 +27,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
   deleteFile,
   deleteFileAsAdmin,
+  getKubeConfig,
   getMinikubeAdditionalEnvs,
   getMinikubeHome,
   getMinikubePath,
@@ -136,6 +137,34 @@ describe('getMinikubeHome', () => {
 
     expect(computedHome).not.toEqual(existingEnvHome);
     expect(computedHome).toEqual(existingConfigHome);
+  });
+});
+
+describe('getKubeConfig', () => {
+  test('getKubeConfig with empty configuration property', async () => {
+    const existingEnvKubeConfig = '/my-existing-kube-config-file';
+    const existingConfigKubeConfig = '';
+    process.env.KUBECONFIG = existingEnvKubeConfig;
+
+    configGetMock.mockReturnValue(existingConfigKubeConfig);
+
+    const computedKubeConfig = getKubeConfig();
+
+    expect(computedKubeConfig).toEqual(existingEnvKubeConfig);
+    expect(computedKubeConfig).not.toEqual(existingConfigKubeConfig);
+  });
+
+  test('getKubeConfig with empty configuration property', async () => {
+    const existingEnvKubeConfig = '/my-existing-kube-config-file';
+    const existingConfigKubeConfig = '/my-another-existing-kube-config-file';
+    process.env.KUBECONFIG = existingEnvKubeConfig;
+
+    configGetMock.mockReturnValue(existingConfigKubeConfig);
+
+    const computedKubeConfig = getKubeConfig();
+
+    expect(computedKubeConfig).not.toEqual(existingEnvKubeConfig);
+    expect(computedKubeConfig).toEqual(existingConfigKubeConfig);
   });
 });
 
