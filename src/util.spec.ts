@@ -365,7 +365,11 @@ describe('getMinikubeVersion', () => {
       await getMinikubeVersion('/dummy/minikube');
     }).rejects.toThrowError('something wrong');
 
-    expect(extensionApi.process.exec).toHaveBeenCalledWith('/dummy/minikube', ['version', '--short'], expect.anything());
+    expect(extensionApi.process.exec).toHaveBeenCalledWith(
+      '/dummy/minikube',
+      ['version', '--short'],
+      expect.anything(),
+    );
   });
 
   test('should format the version output', async () => {
