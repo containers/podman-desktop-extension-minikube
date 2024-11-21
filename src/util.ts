@@ -119,7 +119,9 @@ export async function installBinaryToSystem(binaryPath: string, binaryName: stri
 }
 
 export async function getMinikubeVersion(executable: string): Promise<string> {
-  const result = await extensionApi.process.exec(executable, ['version', '--short']);
+  const result = await extensionApi.process.exec(executable, ['version', '--short'], {
+    env: getMinikubeAdditionalEnvs(),
+  });
   return result.stdout.replace('v', '').trim();
 }
 
