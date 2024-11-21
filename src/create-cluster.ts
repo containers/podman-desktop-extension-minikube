@@ -31,6 +31,7 @@ export async function createCluster(
   const clusterName = params['minikube.cluster.creation.name'] ?? 'minikube';
   const driver = params['minikube.cluster.creation.driver'] ?? 'docker';
   const runtime = params['minikube.cluster.creation.runtime'] ?? 'docker';
+  const nodes = params['minikube.cluster.creation.nodes'];
   const baseImage = params['minikube.cluster.creation.base-image'];
   const mountString = params['minikube.cluster.creation.mount-string'];
 
@@ -44,6 +45,9 @@ export async function createCluster(
     // need to add also the mount option
     startArgs.push('--mount');
     startArgs.push('--mount-string', mountString);
+  }
+  if (nodes) {
+    startArgs.push('--nodes', nodes);
   }
 
   // now execute the command to create the cluster

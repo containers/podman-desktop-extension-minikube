@@ -47,6 +47,12 @@
           "scope": "KubernetesProviderConnectionFactory",
           "description": "Container Runtime"
         },
+        "minikube.cluster.creation.nodes": {
+          "type": "integer",
+          "default": 1,
+          "scope": "KubernetesProviderConnectionFactory",
+          "description": "The total number of nodes to spin up"
+        },
         "minikube.cluster.creation.base-image": {
           "type": "string",
           "scope": "KubernetesProviderConnectionFactory",
