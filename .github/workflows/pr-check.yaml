@@ -65,3 +65,78 @@ jobs:
       - name: Run build
         run: pnpm build
         timeout-minutes: 40
+
+  e2e-tests:
+    name: e2e tests
+    runs-on: ubuntu-24.04
+    env:
+      SKIP_EXTENSION_INSTALL: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: extension-minikube
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Checkout podman desktop
+      - uses: actions/checkout@v4
+        with:
+          repository: containers/podman-desktop
+          ref: main
+          path: podman-desktop
+
+      - name: Revert unprivileged user namespace restrictions in Ubuntu 24.04
+        run: |
+          # allow unprivileged user namespace
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          run_install: false
+          package_json_file: ./podman-desktop/package.json
+
+      - name: Execute pnpm
+        working-directory: ./podman-desktop
+        run: pnpm install
+
+      - name: Build Podman Desktop for E2E tests
+        working-directory: ./podman-desktop
+        run: pnpm test:e2e:build
+
+      - name: Ensure getting current HEAD version of the test framework
+        working-directory: ./extension-minikube
+        run: |
+          # workaround for https://github.com/containers/podman-desktop-extension-bootc/issues/712
+          version=$(npm view @podman-desktop/tests-playwright@next version)
+          echo "Version of @podman-desktop/tests-playwright to be used: $version"
+          jq --arg version "$version" '.devDependencies."@podman-desktop/tests-playwright" = $version' package.json > package.json_tmp && mv package.json_tmp package.json
+          pnpm install --lockfile-only
+  
+      - name: Execute pnpm in Minikube Extension
+        working-directory: ./extension-minikube
+        run: pnpm install
+
+      - name: Build minikube extension from container file
+        working-directory: ./extension-minikube
+        run: |
+          pnpm build
+          podman build -t local_minikube_image ./
+          CONTAINER_ID=$(podman create localhost/local_minikube_image --entrypoint "")
+          podman export $CONTAINER_ID > /tmp/local_minikube_extension.tar
+          mkdir -p tests/playwright/tests/output/minikube-tests-pd/plugins
+          tar -xf /tmp/local_minikube_extension.tar -C tests/playwright/tests/output/minikube-tests-pd/plugins
+
+      - name: Run All E2E tests
+        working-directory: ./extension-minikube
+        env:
+          PODMAN_DESKTOP_ARGS: ${{ github.workspace }}/podman-desktop
+        run: pnpm test:e2e
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-tests
+          path: ./**/tests/**/output/

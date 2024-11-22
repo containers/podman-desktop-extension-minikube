@@ -5,7 +5,7 @@
     "module": "esnext",
     "target": "esnext",
     "sourceMap": true,
-    "rootDirs": ["src", "../../playwright.config.ts"],
+    "rootDirs": ["src"],
     "outDir": "dist",
     "skipLibCheck": true,
     "types": ["node"],
@@ -15,6 +15,6 @@
   },
   "include": [
     "src/**/*.ts",
-    "../../playwright.config.ts",
+    "./playwright.config.ts"
   ],
 }
