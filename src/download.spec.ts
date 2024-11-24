@@ -291,9 +291,6 @@ describe('install', () => {
   });
 
   test('user should be notified if system-wide installed failed', async () => {
-    Object.defineProperty(process, 'platform', {
-      value: 'linux',
-    });
     (env.isLinux as boolean) = true;
     const release: MinikubeGithubReleaseArtifactMetadata = {
       tag: 'v1.2.3',

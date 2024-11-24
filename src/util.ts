@@ -91,10 +91,8 @@ export function getBinarySystemPath(binaryName: string): string {
 // When running in a flatpak, we'll use flatpak-spawn to execute the command on the host
 // @return the system-wide path where it is installed
 export async function installBinaryToSystem(binaryPath: string, binaryName: string): Promise<string> {
-  const system = process.platform;
-
   // Before copying the file, make sure it's executable (chmod +x) for Linux and Mac
-  if (system === 'linux' || system === 'darwin') {
+  if (extensionApi.env.isLinux || extensionApi.env.isMac) {
     try {
       await extensionApi.process.exec('chmod', ['+x', binaryPath]);
       console.log(`Made ${binaryPath} executable`);
@@ -108,7 +106,7 @@ export async function installBinaryToSystem(binaryPath: string, binaryName: stri
   const destinationPath: string = getBinarySystemPath(binaryName);
   let command: string;
   let args: string[];
-  if (system === 'win32') {
+  if (extensionApi.env.isWindows) {
     command = 'copy';
     args = [`"${binaryPath}"`, `"${destinationPath}"`];
   } else {
@@ -119,7 +117,7 @@ export async function installBinaryToSystem(binaryPath: string, binaryName: stri
   // If on macOS or Linux, check to see if the /usr/local/bin directory exists,
   // if it does not, then add mkdir -p /usr/local/bin to the start of the command when moving the binary.
   const localBinDir = '/usr/local/bin';
-  if ((system === 'linux' || system === 'darwin') && !fs.existsSync(localBinDir)) {
+  if ((extensionApi.env.isLinux || extensionApi.env.isMac) && !fs.existsSync(localBinDir)) {
     await extensionApi.process.exec('mkdir', ['-p', localBinDir], { isAdmin: true });
   }
 
