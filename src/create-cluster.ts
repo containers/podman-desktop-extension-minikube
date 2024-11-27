@@ -34,6 +34,7 @@ export async function createCluster(
   const nodes = params['minikube.cluster.creation.nodes'];
   const baseImage = params['minikube.cluster.creation.base-image'];
   const mountString = params['minikube.cluster.creation.mount-string'];
+  const addons = params['minikube.cluster.creation.addons'];
 
   const startArgs = ['start', '--profile', clusterName, '--driver', driver, '--container-runtime', runtime];
 
@@ -48,6 +49,10 @@ export async function createCluster(
   }
   if (nodes) {
     startArgs.push('--nodes', nodes);
+  }
+  if (addons) {
+    startArgs.push('--install-addons');
+    startArgs.push('--addons', addons);
   }
 
   // now execute the command to create the cluster

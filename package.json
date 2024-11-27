@@ -53,6 +53,11 @@
           "scope": "KubernetesProviderConnectionFactory",
           "description": "The total number of nodes to spin up"
         },
+        "minikube.cluster.creation.addons": {
+          "type": "string",
+          "scope": "KubernetesProviderConnectionFactory",
+          "markdownDescription": "Comma-separated list of [addons](https://minikube.sigs.k8s.io/docs/commands/addons/) to enable. See `minikube addons list` for a list of valid addon names"
+        },
         "minikube.cluster.creation.base-image": {
           "type": "string",
           "scope": "KubernetesProviderConnectionFactory",
