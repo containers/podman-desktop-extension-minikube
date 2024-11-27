@@ -19,16 +19,15 @@
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
-  testDir: 'tests/playwright/src/spec',
-  outputDir: 'tests/playwright/output/',
+  outputDir: './output/',
   workers: 1,
   timeout: 60000,
 
   reporter: [
     ['list'],
-    ['junit', { outputFile: 'tests/playwright/output/junit-results.xml' }],
-    ['json', { outputFile: 'tests/playwright/output/json-results.json' }],
-    ['html', { open: 'never', outputFolder: 'tests/playwright/output/html-results' }],
+    ['junit', { outputFile: './output/junit-results.xml' }],
+    ['json', { outputFile: './output/json-results.json' }],
+    ['html', { open: 'never', outputFolder: './output/html-results' }],
   ],
 
   projects: [

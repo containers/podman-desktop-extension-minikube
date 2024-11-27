@@ -84,8 +84,7 @@
     "lint:fix": "eslint . --fix",
     "watch": "vite build -w",
     "typecheck": "tsc --noEmit",
-    "test:e2e:setup": "xvfb-maybe --auto-servernum --server-args='-screen 0 1280x960x24' --",
-    "test:e2e": "npm run test:e2e:setup npx playwright test tests/playwright/src/spec/"
+    "test:e2e": "cd tests/playwright && npm run test:e2e"
   },
   "dependencies": {
     "@octokit/rest": "^21.0.2",

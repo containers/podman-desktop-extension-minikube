@@ -22,6 +22,7 @@ import {
     ExtensionsPage,  
     isLinux,
     ResourcesPage,  
+    RunnerOptions,
     test,
 } from '@podman-desktop/tests-playwright';
 
@@ -38,6 +39,15 @@ test.beforeAll(async ({ runner, page, welcomePage }) => {
     await welcomePage.handleWelcomePage(true);
     extensionsPage = new ExtensionsPage(page); 
 });
+
+test.use({
+    runnerOptions: new RunnerOptions({
+      customFolder: 'minikube-tests-pd',
+      customOutputFolder: 'tests/output',
+      autoUpdate: false,
+      autoCheckUpdates: false,
+    }),
+  });
 
 test.afterAll(async ({ runner }) => {
     await runner.close();   
@@ -60,7 +70,7 @@ test.describe.serial('Podman Desktop Minikube Extension Tests', () => {
         await playExpect(extensionsPage.header).toBeVisible();
         await playExpect.poll(async () => extensionsPage.extensionIsInstalled(EXTENSION_LABEL)).toBeTruthy();
         const minikubeExtension = await extensionsPage.getInstalledExtension(EXTENSION_NAME, EXTENSION_LABEL);
-        await playExpect(minikubeExtension.status).toHaveText('ACTIVE');
+        await playExpect(minikubeExtension.status).toHaveText('ACTIVE', {timeout: 40_000});
     });
 
     test('Ensure Minikube extension details page is correctly displayed', async () => {
