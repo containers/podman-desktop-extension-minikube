@@ -32,7 +32,7 @@ importers:
         version: 1.14.1
       '@podman-desktop/tests-playwright':
         specifier: next
-        version: 1.15.0-202411261523-3d0e65cc9d
+        version: 1.15.0-202411271718-df730894b3
       '@typescript-eslint/eslint-plugin':
         specifier: ^8.16.0
         version: 8.16.0(@typescript-eslint/parser@8.16.0(eslint@9.14.0)(typescript@5.7.2))(eslint@9.14.0)(typescript@5.7.2)
@@ -97,8 +97,8 @@ importers:
         specifier: ^13.12.0
         version: 13.12.0
       vite:
-        specifier: ^6.0.0
-        version: 6.0.0(@types/node@20.17.8)
+        specifier: ^6.0.1
+        version: 6.0.1(@types/node@20.17.8)
       vitest:
         specifier: ^2.0.5
         version: 2.1.4(@types/node@20.17.8)
@@ -1226,8 +1226,8 @@ packages:
   '@podman-desktop/api@1.14.1':
     resolution: {integrity: sha512-mOX5XWAomOXgXt/S5o13t9LXSHylg8xvAzWYwIrHkXYQL6fy6QqChroezx6MlSotJ6bj1peHh0ToFfxVHTa79w==}
 
-  '@podman-desktop/tests-playwright@1.15.0-202411261523-3d0e65cc9d':
-    resolution: {integrity: sha512-pLW0WHCXasyvddJArrolt9mylGiGi3bZWXd8K8gaa51rtnhT/kdW0KwA1vumrLSC7Y8zcCLiv8+C3BjSUXv/IA==}
+  '@podman-desktop/tests-playwright@1.15.0-202411271718-df730894b3':
+    resolution: {integrity: sha512-g6MuFsncWvSSz6Jmw6siJ2ATj/ODJJMQ1wP41ILXJuQB6jbuEYBsSK4F1j6YcA/NNGHtf3r6CWYwKA9y8PRYoQ==}
 
   '@rollup/rollup-android-arm-eabi@4.25.0':
     resolution: {integrity: sha512-CC/ZqFZwlAIbU1wUPisHyV/XRc5RydFrNLtgl3dGYskdwPZdt4HERtKm50a/+DtTlKeCq9IXFEWR+P6blwjqBA==}
@@ -2830,10 +2830,6 @@ packages:
     resolution: {integrity: sha512-d7Uw+eZoloe0EHDIYoe+bQ5WXnGMOpmiZFTuMWCwpjzzkL2nTjcKiAk4hh8TjnGye2TwWOk3UXucZ+3rbmBa8Q==}
     engines: {node: '>= 0.4'}
 
-  postcss@8.4.48:
-    resolution: {integrity: sha512-GCRK8F6+Dl7xYniR5a4FYbpBzU8XnZVeowqsQFYdcXuSbChgiks7qybSkbvnaeqv0G0B+dd9/jJgH8kkLDQeEA==}
-    engines: {node: ^10 || ^12 || >=14}
-
   postcss@8.4.49:
     resolution: {integrity: sha512-OCVPnIObs4N29kxTjzLfUryOkvZEq+pf8jTF0lg8E7uETuWHA+v7j3c/xJmiqpX450191LlmZfUKkXxkTry7nA==}
     engines: {node: ^10 || ^12 || >=14}
@@ -3327,8 +3323,8 @@ packages:
       terser:
         optional: true
 
-  vite@6.0.0:
-    resolution: {integrity: sha512-Q2+5yQV79EdnpbNxjD3/QHVMCBaQ3Kpd4/uL51UGuh38bIIM+s4o3FqyCzRvTRwFb+cWIUeZvaWwS9y2LD2qeQ==}
+  vite@6.0.1:
+    resolution: {integrity: sha512-Ldn6gorLGr4mCdFnmeAOLweJxZ34HjKnDm4HGo6P66IEqTxQb36VEdFJQENKxWjupNfoIjvRUnswjn1hpYEpjQ==}
     engines: {node: ^18.0.0 || ^20.0.0 || >=22.0.0}
     hasBin: true
     peerDependencies:
@@ -4643,7 +4639,7 @@ snapshots:
 
   '@podman-desktop/api@1.14.1': {}
 
-  '@podman-desktop/tests-playwright@1.15.0-202411261523-3d0e65cc9d': {}
+  '@podman-desktop/tests-playwright@1.15.0-202411271718-df730894b3': {}
 
   '@rollup/rollup-android-arm-eabi@4.25.0':
     optional: true
@@ -6580,12 +6576,6 @@ snapshots:
 
   possible-typed-array-names@1.0.0: {}
 
-  postcss@8.4.48:
-    dependencies:
-      nanoid: 3.3.7
-      picocolors: 1.1.1
-      source-map-js: 1.2.1
-
   postcss@8.4.49:
     dependencies:
       nanoid: 3.3.7
@@ -7115,13 +7105,13 @@ snapshots:
   vite@5.4.11(@types/node@20.17.8):
     dependencies:
       esbuild: 0.21.5
-      postcss: 8.4.48
+      postcss: 8.4.49
       rollup: 4.25.0
     optionalDependencies:
       '@types/node': 20.17.8
       fsevents: 2.3.3
 
-  vite@6.0.0(@types/node@20.17.8):
+  vite@6.0.1(@types/node@20.17.8):
     dependencies:
       esbuild: 0.24.0
       postcss: 8.4.49
