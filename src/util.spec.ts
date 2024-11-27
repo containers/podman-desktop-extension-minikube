@@ -171,9 +171,6 @@ describe('getKubeConfig', () => {
 describe('installBinaryToSystem', () => {
   test('error: expect installBinaryToSystem to fail with a non existing binary', async () => {
     // Mock the platform to be linux
-    Object.defineProperty(process, 'platform', {
-      value: 'linux',
-    });
     vi.mocked(extensionApi.env).isLinux = true;
 
     vi.spyOn(extensionApi.process, 'exec').mockImplementation(
@@ -200,9 +197,6 @@ describe('installBinaryToSystem', () => {
 
   test('success: installBinaryToSystem on mac with /usr/local/bin already created', async () => {
     // Mock the platform to be darwin
-    Object.defineProperty(process, 'platform', {
-      value: 'darwin',
-    });
     vi.mocked(extensionApi.env).isMac = true;
 
     // Mock existsSync to be true since within the function it's doing: !fs.existsSync(localBinDir)
@@ -223,9 +217,6 @@ describe('installBinaryToSystem', () => {
 
   test('expect: installBinaryToSystem on linux with /usr/local/bin NOT created yet (expect mkdir -p command)', async () => {
     // Mock the platform to be darwin
-    Object.defineProperty(process, 'platform', {
-      value: 'linux',
-    });
     vi.mocked(extensionApi.env).isLinux = true;
 
     // Mock existsSync to be false since within the function it's doing: !fs.existsSync(localBinDir)
