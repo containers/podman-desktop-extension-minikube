@@ -128,3 +128,31 @@ test('expect cluster to be created with custom mount', async () => {
     expect.anything(),
   );
 });
+
+test('expect cluster to be created with custom nodes count', async () => {
+  vi.mocked(extensionApi.process.exec).mockResolvedValue({ stderr: '', stdout: '', command: '' });
+
+  await createCluster({ 'minikube.cluster.creation.nodes': 3 }, undefined, '', telemetryLoggerMock);
+  expect(telemetryLogUsageMock).toHaveBeenNthCalledWith(
+    1,
+    'createCluster',
+    expect.objectContaining({ driver: 'docker' }),
+  );
+  expect(telemetryLogErrorMock).not.toBeCalled();
+  expect(extensionApi.kubernetes.createResources).not.toBeCalled();
+  expect(extensionApi.process.exec).toBeCalledWith(
+    '',
+    [
+      'start', //
+      '--profile',
+      'minikube',
+      '--driver',
+      'docker',
+      '--container-runtime',
+      'docker',
+      '--nodes',
+      3,
+    ],
+    expect.anything(),
+  );
+});

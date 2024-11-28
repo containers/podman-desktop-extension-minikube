@@ -10,7 +10,7 @@
   "engines": {
     "podman-desktop": ">=1.10.0"
   },
-  "main": "./dist/extension.js",
+  "main": "./dist/extension.cjs",
   "contributes": {
     "configuration": {
       "title": "Minikube",
@@ -47,6 +47,17 @@
           "scope": "KubernetesProviderConnectionFactory",
           "description": "Container Runtime"
         },
+        "minikube.cluster.creation.nodes": {
+          "type": "integer",
+          "default": 1,
+          "scope": "KubernetesProviderConnectionFactory",
+          "description": "The total number of nodes to spin up"
+        },
+        "minikube.cluster.creation.addons": {
+          "type": "string",
+          "scope": "KubernetesProviderConnectionFactory",
+          "markdownDescription": "Comma-separated list of [addons](https://minikube.sigs.k8s.io/docs/commands/addons/) to enable. See `minikube addons list` for a list of valid addon names"
+        },
         "minikube.cluster.creation.base-image": {
           "type": "string",
           "scope": "KubernetesProviderConnectionFactory",
@@ -78,8 +89,7 @@
     "lint:fix": "eslint . --fix",
     "watch": "vite build -w",
     "typecheck": "tsc --noEmit",
-    "test:e2e:setup": "xvfb-maybe --auto-servernum --server-args='-screen 0 1280x960x24' --",
-    "test:e2e": "npm run test:e2e:setup npx playwright test tests/playwright/src/spec/"
+    "test:e2e": "cd tests/playwright && npm run test:e2e"
   },
   "dependencies": {
     "@octokit/rest": "^21.0.2",
@@ -92,10 +102,10 @@
     "@playwright/test": "^1.49.0",
     "@podman-desktop/api": "^1.14.1",
     "@podman-desktop/tests-playwright": "next",
-    "@typescript-eslint/eslint-plugin": "^8.15.0",
-    "@typescript-eslint/parser": "^8.15.0",
+    "@typescript-eslint/eslint-plugin": "^8.16.0",
+    "@typescript-eslint/parser": "^8.16.0",
     "@vitest/coverage-v8": "^2.0.5",
-    "electron": "^33.1.0",
+    "electron": "^33.2.1",
     "eslint": "^9.14.0",
     "eslint-import-resolver-custom-alias": "^1.3.2",
     "eslint-import-resolver-typescript": "^3.6.3",
@@ -106,14 +116,14 @@
     "eslint-plugin-redundant-undefined": "^1.0.0",
     "eslint-plugin-simple-import-sort": "^12.1.1",
     "eslint-plugin-sonarjs": "^2.0.4",
-    "eslint-plugin-unicorn": "^56.0.0",
+    "eslint-plugin-unicorn": "^56.0.1",
     "globals": "^15.12.0",
     "mkdirp": "^3.0.1",
-    "prettier": "^3.3.3",
-    "typescript": "5.6.3",
-    "typescript-eslint": "^8.15.0",
+    "prettier": "^3.4.1",
+    "typescript": "5.7.2",
+    "typescript-eslint": "^8.16.0",
     "validator": "^13.12.0",
-    "vite": "^5.4.11",
+    "vite": "^6.0.1",
     "vitest": "^2.0.5",
     "xvfb-maybe": "^0.2.1"
   },

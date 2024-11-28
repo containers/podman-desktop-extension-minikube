@@ -27,6 +27,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
   deleteFile,
   deleteFileAsAdmin,
+  getKubeConfig,
   getMinikubeAdditionalEnvs,
   getMinikubeHome,
   getMinikubePath,
@@ -139,12 +140,37 @@ describe('getMinikubeHome', () => {
   });
 });
 
+describe('getKubeConfig', () => {
+  test('getKubeConfig with empty configuration property', async () => {
+    const existingEnvKubeConfig = '/my-existing-kube-config-file';
+    const existingConfigKubeConfig = '';
+    process.env.KUBECONFIG = existingEnvKubeConfig;
+
+    configGetMock.mockReturnValue(existingConfigKubeConfig);
+
+    const computedKubeConfig = getKubeConfig();
+
+    expect(computedKubeConfig).toEqual(existingEnvKubeConfig);
+    expect(computedKubeConfig).not.toEqual(existingConfigKubeConfig);
+  });
+
+  test('getKubeConfig with empty configuration property', async () => {
+    const existingEnvKubeConfig = '/my-existing-kube-config-file';
+    const existingConfigKubeConfig = '/my-another-existing-kube-config-file';
+    process.env.KUBECONFIG = existingEnvKubeConfig;
+
+    configGetMock.mockReturnValue(existingConfigKubeConfig);
+
+    const computedKubeConfig = getKubeConfig();
+
+    expect(computedKubeConfig).not.toEqual(existingEnvKubeConfig);
+    expect(computedKubeConfig).toEqual(existingConfigKubeConfig);
+  });
+});
+
 describe('installBinaryToSystem', () => {
   test('error: expect installBinaryToSystem to fail with a non existing binary', async () => {
     // Mock the platform to be linux
-    Object.defineProperty(process, 'platform', {
-      value: 'linux',
-    });
     vi.mocked(extensionApi.env).isLinux = true;
 
     vi.spyOn(extensionApi.process, 'exec').mockImplementation(
@@ -171,9 +197,6 @@ describe('installBinaryToSystem', () => {
 
   test('success: installBinaryToSystem on mac with /usr/local/bin already created', async () => {
     // Mock the platform to be darwin
-    Object.defineProperty(process, 'platform', {
-      value: 'darwin',
-    });
     vi.mocked(extensionApi.env).isMac = true;
 
     // Mock existsSync to be true since within the function it's doing: !fs.existsSync(localBinDir)
@@ -194,9 +217,6 @@ describe('installBinaryToSystem', () => {
 
   test('expect: installBinaryToSystem on linux with /usr/local/bin NOT created yet (expect mkdir -p command)', async () => {
     // Mock the platform to be darwin
-    Object.defineProperty(process, 'platform', {
-      value: 'linux',
-    });
     vi.mocked(extensionApi.env).isLinux = true;
 
     // Mock existsSync to be false since within the function it's doing: !fs.existsSync(localBinDir)
@@ -365,7 +385,11 @@ describe('getMinikubeVersion', () => {
       await getMinikubeVersion('/dummy/minikube');
     }).rejects.toThrowError('something wrong');
 
-    expect(extensionApi.process.exec).toHaveBeenCalledWith('/dummy/minikube', ['version', '--short']);
+    expect(extensionApi.process.exec).toHaveBeenCalledWith(
+      '/dummy/minikube',
+      ['version', '--short'],
+      expect.anything(),
+    );
   });
 
   test('should format the version output', async () => {
@@ -377,6 +401,27 @@ describe('getMinikubeVersion', () => {
 
     const result = await getMinikubeVersion('/dummy/minikube');
     expect(result).toBe('1.5.3');
+  });
+
+  test('should use the additional envs', async () => {
+    const existingEnvHome = '/my-existing-minikube-home';
+    const existingConfigHome = '';
+    process.env.MINIKUBE_HOME = existingEnvHome;
+
+    configGetMock.mockReturnValue(existingConfigHome);
+
+    vi.mocked(extensionApi.process.exec).mockResolvedValue({
+      stdout: 'v1.5.3',
+      stderr: '',
+      command: '',
+    });
+
+    await getMinikubeVersion('/dummy/minikube');
+    expect(extensionApi.process.exec).toHaveBeenCalledWith('/dummy/minikube', ['version', '--short'], {
+      env: expect.objectContaining({
+        MINIKUBE_HOME: existingEnvHome,
+      }),
+    });
   });
 });
 
