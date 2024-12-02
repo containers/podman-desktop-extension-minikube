@@ -213,9 +213,9 @@ jobs:
                 -extBranch ${{ env.EXT_BRANCH }} \
                 -extTests ${{ env.EXT_TESTS }} \
                 -npmTarget ${{ env.NPM_TARGET }} \
-                -initialize ${{ env.PODMAN_INIT }} \
-                -rootful ${{ env.PODMAN_ROOTFUL }} \
-                -start ${{ env.PODMAN_START }} \
+                -initialize 1 \
+                -rootful 1 \
+                -start 1 \
                 -userNetworking ${{ env.PODMAN_NETWORKING }} \
                 -envVars ${{ env.ENV_VARS }} \
         # check logs
