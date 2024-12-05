@@ -98,7 +98,7 @@
   },
   "devDependencies": {
     "7zip-min": "^1.4.5",
-    "@eslint/compat": "^1.2.3",
+    "@eslint/compat": "^1.2.4",
     "@playwright/test": "^1.49.0",
     "@podman-desktop/api": "^1.14.1",
     "@podman-desktop/tests-playwright": "next",
