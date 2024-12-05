@@ -32,7 +32,7 @@ importers:
         version: 1.14.1
       '@podman-desktop/tests-playwright':
         specifier: next
-        version: 1.15.0-202412042153-9cc50faddb2
+        version: 1.15.0-202412051201-79d5e95e29f
       '@typescript-eslint/eslint-plugin':
         specifier: ^8.17.0
         version: 8.17.0(@typescript-eslint/parser@8.17.0(eslint@9.16.0)(typescript@5.7.2))(eslint@9.16.0)(typescript@5.7.2)
@@ -73,8 +73,8 @@ importers:
         specifier: ^12.1.1
         version: 12.1.1(eslint@9.16.0)
       eslint-plugin-sonarjs:
-        specifier: ^3.0.0
-        version: 3.0.0(eslint@9.16.0)
+        specifier: ^3.0.1
+        version: 3.0.1(eslint@9.16.0)
       eslint-plugin-unicorn:
         specifier: ^56.0.1
         version: 56.0.1(eslint@9.16.0)
@@ -662,8 +662,8 @@ packages:
     peerDependencies:
       '@babel/core': ^7.0.0-0 || ^8.0.0-0 <8.0.0
 
-  '@babel/preset-react@7.25.9':
-    resolution: {integrity: sha512-D3to0uSPiWE7rBrdIICCd0tJSIGpLaaGptna2+w7Pft5xMqLpA1sz99DK5TZ1TjGbdQ/VI1eCSZ06dv3lT4JOw==}
+  '@babel/preset-react@7.26.3':
+    resolution: {integrity: sha512-Nl03d6T9ky516DGK2YMxrTqvnpUW63TnJMOMonj+Zae0JiPC5BC9xPMSL6L8fiSpA5vP88qfygavVQvnLp+6Cw==}
     engines: {node: '>=6.9.0'}
     peerDependencies:
       '@babel/core': ^7.0.0-0
@@ -1150,8 +1150,8 @@ packages:
   '@podman-desktop/api@1.14.1':
     resolution: {integrity: sha512-mOX5XWAomOXgXt/S5o13t9LXSHylg8xvAzWYwIrHkXYQL6fy6QqChroezx6MlSotJ6bj1peHh0ToFfxVHTa79w==}
 
-  '@podman-desktop/tests-playwright@1.15.0-202412042153-9cc50faddb2':
-    resolution: {integrity: sha512-dUtQ/gmZpSbAuGAcRZiQ6OYZ3AWvC0zzVTKGv8TKq5iwg+3MGKHsg2WHbOVEL0gz4jknb0dMIRKwzm7DjHNBSQ==}
+  '@podman-desktop/tests-playwright@1.15.0-202412051201-79d5e95e29f':
+    resolution: {integrity: sha512-70cf0FEFNTP40vna6DtldWU1gxsqp4CF5H2b3RHsgZDyw3yg2krlwN0D6qkYzSaExahaFoWFoVxVlqPxrLlSjw==}
 
   '@rollup/rollup-android-arm-eabi@4.25.0':
     resolution: {integrity: sha512-CC/ZqFZwlAIbU1wUPisHyV/XRc5RydFrNLtgl3dGYskdwPZdt4HERtKm50a/+DtTlKeCq9IXFEWR+P6blwjqBA==}
@@ -1884,8 +1884,8 @@ packages:
     peerDependencies:
       eslint: '>=5.0.0'
 
-  eslint-plugin-sonarjs@3.0.0:
-    resolution: {integrity: sha512-gUu9m942ddTcLULvwJi2MllOjrsK39VgpA7vaSkZ+oNXbYes4R8DsxOobx+I5gJg2537/h4kWJNkfr/pw7be5w==}
+  eslint-plugin-sonarjs@3.0.1:
+    resolution: {integrity: sha512-RT6VgdPqizbMLmTryIc3fB169hRjvDFlqieSZEEswGtApPb4Dn9BndmN9qyfBV/By0hbseIX8zQWKBz5E7lyiQ==}
     peerDependencies:
       eslint: ^8.0.0 || ^9.0.0
 
@@ -3868,7 +3868,7 @@ snapshots:
       '@babel/types': 7.26.0
       esutils: 2.0.3
 
-  '@babel/preset-react@7.25.9(@babel/core@7.26.0)':
+  '@babel/preset-react@7.26.3(@babel/core@7.26.0)':
     dependencies:
       '@babel/core': 7.26.0
       '@babel/helper-plugin-utils': 7.25.9
@@ -4241,7 +4241,7 @@ snapshots:
 
   '@podman-desktop/api@1.14.1': {}
 
-  '@podman-desktop/tests-playwright@1.15.0-202412042153-9cc50faddb2': {}
+  '@podman-desktop/tests-playwright@1.15.0-202412051201-79d5e95e29f': {}
 
   '@rollup/rollup-android-arm-eabi@4.25.0':
     optional: true
@@ -5139,14 +5139,14 @@ snapshots:
     dependencies:
       eslint: 9.16.0
 
-  eslint-plugin-sonarjs@3.0.0(eslint@9.16.0):
+  eslint-plugin-sonarjs@3.0.1(eslint@9.16.0):
     dependencies:
       '@babel/core': 7.26.0
       '@babel/eslint-parser': 7.25.9(@babel/core@7.26.0)(eslint@9.16.0)
       '@babel/plugin-proposal-decorators': 7.25.9(@babel/core@7.26.0)
       '@babel/preset-env': 7.26.0(@babel/core@7.26.0)
       '@babel/preset-flow': 7.25.9(@babel/core@7.26.0)
-      '@babel/preset-react': 7.25.9(@babel/core@7.26.0)
+      '@babel/preset-react': 7.26.3(@babel/core@7.26.0)
       '@eslint-community/regexpp': 4.12.1
       builtin-modules: 3.3.0
       bytes: 3.1.2
