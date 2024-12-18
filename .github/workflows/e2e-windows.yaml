@@ -78,7 +78,7 @@ jobs:
       contents: read
       checks: write
     env:
-      MAPT_VERSION: v0.6.8
+      MAPT_VERSION: v0.7.2
       MAPT_IMAGE: quay.io/redhat-developer/mapt
     strategy:
       fail-fast: false
@@ -138,7 +138,10 @@ jobs:
             --conn-details-output '/workspace' \
             --windows-version '${{ matrix.windows-version }}' \
             --windows-featurepack '${{ matrix.windows-featurepack }}' \
-            --vmsize 'Standard_D8s_v4' \
+            --nested-virt \
+            --cpus 8 \
+            --memory 16 \
+            --arch 'x64' \
             --tags project=podman-desktop \
             --spot
         # Check logs 
