@@ -74,9 +74,6 @@ jobs:
   windows:
     name: windows-${{ matrix.windows-version }}-${{ matrix.windows-featurepack }}
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      checks: write
     env:
       MAPT_VERSION: v0.7.2
       MAPT_IMAGE: quay.io/redhat-developer/mapt
@@ -249,6 +246,7 @@ jobs:
         include_passed: true
         detailed_summary: true
         require_tests:  true
+        annotate_only: true
         report_paths: '**/*results.xml'
 
     - name: Upload test artifacts
@@ -258,3 +256,4 @@ jobs:
         name: results-e2e-${{ matrix.windows-version }}${{ matrix.windows-featurepack }}
         path: |
           results/*
+      
